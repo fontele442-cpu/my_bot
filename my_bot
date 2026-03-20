@@ -1,1 +1,12 @@
 python-telegram-bot==20.3
+from telegram.ext import Updater, CommandHandler
+
+TOKEN = "8604215027:AAGSlTokf-02bKwf7VY3-dLo5NKVsGmhQgU"
+
+def start(update, context):
+    update.message.reply_text("Bot ishga tushdi ✅")
+
+updater = Updater(TOKEN)
+updater.dispatcher.add_handler(CommandHandler("start", start))
+updater.start_polling()
+updater.idle()
