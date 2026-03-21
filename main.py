@@ -1,13 +1,18 @@
 import sqlite3
-import requests
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from flask import Flask, request
+from telegram import Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Dispatcher, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 TOKEN = "8648891805:AAFouYZtVYHMGzJJ2dOrTX_mCvYnu53orDM"
-bot_username = "seenarzonsmm571bot"  # referral link uchun
-admins = [8487361853]
+ADMIN_ID = 8487361853
 
+bot = Bot(token=TOKEN)
+app = Flask(__name__)
+dispatcher = Dispatcher(bot, None, use_context=True)
+
+# ======================
 # DATABASE
+# ======================
 conn = sqlite3.connect("bot.db", check_same_thread=False)
 cursor = conn.cursor()
 
@@ -15,357 +20,174 @@ cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY,
     balance INTEGER DEFAULT 0,
-    orders INTEGER DEFAULT 0,
-    vip INTEGER DEFAULT 0,
-    ref INTEGER DEFAULT 0,
-    referred_by INTEGER DEFAULT NULL
+    ref_by INTEGER
 )
 """)
-
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS channels (
-    username TEXT PRIMARY KEY
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT
+)
+""")
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS services (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    api_id INTEGER,
+    price INTEGER,
+    min INTEGER,
+    max INTEGER
+)
+""")
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    link TEXT,
+    count INTEGER,
+    service_id INTEGER,
+    status TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+""")
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
 )
 """)
 conn.commit()
 
-# API SOZLAMALARI
-settings = {
-    "api_url": "",
-    "api_key": "",
-    "services": {}  # {"❤️ Like": service_id, "👁 View": id, ...}
-}
-
-broadcast_mode = {}
-
-# USER QO‘SHISH
-def add_user(user_id, ref_id=None):
-    cursor.execute("SELECT * FROM users WHERE user_id=?", (user_id,))
-    if cursor.fetchone() is None:
-        cursor.execute("INSERT INTO users(user_id, referred_by) VALUES(?,?)", (user_id, ref_id))
-        conn.commit()
-        if ref_id:
-            # referral bonus
-            cursor.execute("UPDATE users SET balance = balance + 500, ref = ref + 1 WHERE user_id=?", (ref_id,))
-            conn.commit()
-
+# ======================
+# UTILITY FUNCTIONS
+# ======================
 def get_balance(user_id):
     cursor.execute("SELECT balance FROM users WHERE user_id=?", (user_id,))
-    return cursor.fetchone()[0]
+    r = cursor.fetchone()
+    return r[0] if r else 0
 
-def is_vip(user_id):
-    cursor.execute("SELECT vip FROM users WHERE user_id=?", (user_id,))
-    return cursor.fetchone()[0] == 1
-
-def set_vip(user_id):
-    cursor.execute("UPDATE users SET vip=1 WHERE user_id=?", (user_id,))
+def update_balance(user_id, amount):
+    cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (amount, user_id))
     conn.commit()
 
-def add_order(user_id):
-    cursor.execute("UPDATE users SET orders = orders + 1 WHERE user_id=?", (user_id,))
-    conn.commit()
+def get_setting(key, default):
+    cursor.execute("SELECT value FROM settings WHERE key=?", (key,))
+    r = cursor.fetchone()
+    return int(r[0]) if r else default
 
-def get_refs(user_id):
-    cursor.execute("SELECT ref FROM users WHERE user_id=?", (user_id,))
-    return cursor.fetchone()[0]
-
-def get_channels():
-    cursor.execute("SELECT username FROM channels")
-    return [row[0] for row in cursor.fetchall()]
-
-def add_channel(username):
-    cursor.execute("INSERT OR IGNORE INTO channels(username) VALUES(?)", (username,))
-    conn.commit()
-
-def del_channel(username):
-    cursor.execute("DELETE FROM channels WHERE username=?", (username,))
-    conn.commit()
-
-# OBUNA TEKSHIRISH
-async def check_sub(update, context):
+# ======================
+# HANDLERS
+# ======================
+def start(update, context):
     user_id = update.effective_user.id
-    for ch in get_channels():
-        try:
-            member = await context.bot.get_chat_member(ch, user_id)
-            if member.status in ["left", "kicked"]:
-                return False
-        except:
-            return False
-    return True
+    args = context.args
+    ref = int(args[0]) if args else None
 
-# SMM API BUYURTMA
-def send_order(service, link, qty):
-    service_id = settings["services"].get(service)
-    if not service_id:
-        return {"error": "Service ID yo'q"}
-    data = {
-        "key": settings["api_key"],
-        "action": "add",
-        "service": service_id,
-        "link": link,
-        "quantity": qty
-    }
-    try:
-        r = requests.post(settings["api_url"], data=data)
-        return r.json()
-    except:
-        return {"error": "API xato"}
-
-# START
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-
-    ref_id = None
-    if context.args:
-        try:
-            ref_id = int(context.args[0])
-        except:
-            pass
-
-    add_user(user_id, ref_id)
-
-    if get_channels():
-        if not await check_sub(update, context):
-            text = "❗ Botdan foydalanish uchun quyidagi kanallarga obuna bo‘ling:\n"
-            for ch in get_channels():
-                text += f"👉 {ch}\n"
-            await update.message.reply_text(text)
-            return
+    cursor.execute("SELECT * FROM users WHERE user_id=?", (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        cursor.execute("INSERT INTO users (user_id, ref_by) VALUES (?,?)", (user_id, ref))
+        conn.commit()
+        if ref:
+            update_balance(ref, 150)  # referral bonus
 
     keyboard = [
-        ["➕ Buyurtma"],
-        ["💰 Balans"],
-        ["👤 Referral"]
+        [InlineKeyboardButton("📦 Buyurtma berish", callback_data="order")],
+        [InlineKeyboardButton("💎 Balans", callback_data="balance"),
+         InlineKeyboardButton("💰 Balans to‘ldirish", callback_data="topup")],
+        [InlineKeyboardButton("👥 Pul ishlash", callback_data="referral")]
     ]
-    if user_id in admins:
-        keyboard.append(["🛠 Admin panel"])
+    update.message.reply_text("🔥 Xush kelibsiz PRO VIP BOT ga!", reply_markup=InlineKeyboardMarkup(keyboard))
 
-    await update.message.reply_text("🚀 VIP SMM BOT", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+dispatcher.add_handler(CommandHandler("start", start, pass_args=True))
 
-# ADMIN PANEL
-async def admin_panel(update, context):
+# --- ADMIN PANEL ---
+def admin(update, context):
+    if update.effective_user.id != ADMIN_ID:
+        return
     keyboard = [
-        ["⭐ VIP berish"],
-        ["🌐 API sozlash"],
-        ["⚙️ Service ID"],
-        ["💰 Balans boshqarish"],
-        ["📢 Broadcast"],
-        ["🔐 Admin qo‘shish"],
-        ["🔒 Majburiy obuna"],
-        ["👥 Userlar"],
-        ["📊 Statistika"],
-        ["🔙 Orqaga"]
+        [InlineKeyboardButton("📦 Xizmatlar", callback_data="services")],
+        [InlineKeyboardButton("📊 Statistika", callback_data="stats")],
+        [InlineKeyboardButton("📢 Kanallar", callback_data="channels")],
+        [InlineKeyboardButton("⚙️ Sozlamalar", callback_data="settings")],
+        [InlineKeyboardButton("📋 Buyurtmalar", callback_data="orders")]
     ]
-    await update.message.reply_text("🛠 Admin panel", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+    update.message.reply_text("🔐 ADMIN PANEL", reply_markup=InlineKeyboardMarkup(keyboard))
 
-# API PANEL
-async def api_panel(update, context):
-    keyboard = [
-        ["🔗 API URL"],
-        ["🔑 API KEY"],
-        ["🔙 Orqaga"]
-    ]
-    await update.message.reply_text("🌐 API sozlash", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+dispatcher.add_handler(CommandHandler("admin", admin))
 
-# HANDLE
-async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    text = update.message.text
+# --- CALLBACKS ---
+def callback_handler(update, context):
+    query = update.callback_query
+    user_id = query.from_user.id
+    data = query.data
 
-    # OBUNA TEKSHIRISH
-    if get_channels() and not await check_sub(update, context):
-        await update.message.reply_text("❗ Avval kanallarga obuna bo‘ling")
-        return
-
-    # ADMIN PANEL
-    if text == "🛠 Admin panel" and user_id in admins:
-        await admin_panel(update, context)
-        return
-
-    # VIP berish
-    elif text == "⭐ VIP berish" and user_id in admins:
-        await update.message.reply_text("User ID yubor:")
-        context.user_data["vip"] = True
-        return
-    elif context.user_data.get("vip"):
-        set_vip(int(text))
-        await update.message.reply_text("✅ VIP berildi")
-        context.user_data["vip"] = False
-        return
-
-    # API sozlash
-    elif text == "🌐 API sozlash" and user_id in admins:
-        await api_panel(update, context)
-        return
-    elif context.user_data.get("api_url"):
-        settings["api_url"] = text
-        await update.message.reply_text("✅ API URL saqlandi")
-        context.user_data["api_url"] = False
-        return
-    elif context.user_data.get("api_key"):
-        settings["api_key"] = text
-        await update.message.reply_text("✅ API KEY saqlandi")
-        context.user_data["api_key"] = False
-        return
-
-    elif text == "🔗 API URL" and user_id in admins:
-        await update.message.reply_text("URL yubor:")
-        context.user_data["api_url"] = True
-        return
-    elif text == "🔑 API KEY" and user_id in admins:
-        await update.message.reply_text("KEY yubor:")
-        context.user_data["api_key"] = True
-        return
-
-    # Service ID boshqarish
-    elif text == "⚙️ Service ID" and user_id in admins:
-        await update.message.reply_text("Masalan: ❤️ Like 123")
-        context.user_data["service"] = True
-        return
-    elif context.user_data.get("service"):
-        try:
-            name, sid = text.rsplit(" ",1)
-            settings["services"][name] = int(sid)
-            await update.message.reply_text("✅ Saqlandi")
-        except:
-            await update.message.reply_text("❌ Xato format")
-        context.user_data["service"] = False
-        return
-
-    # Balans boshqarish
-    elif text == "💰 Balans boshqarish" and user_id in admins:
-        await update.message.reply_text("ID SUMMA formatida yubor:")
-        context.user_data["balance"] = True
-        return
-    elif context.user_data.get("balance"):
-        try:
-            uid, amount = text.split()
-            uid = int(uid)
-            amount = int(amount)
-            cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (amount, uid))
-            conn.commit()
-            await update.message.reply_text("✅ Qo‘shildi")
-        except:
-            await update.message.reply_text("❌ Xato")
-        context.user_data["balance"] = False
-        return
-
-    # Broadcast
-    elif text == "📢 Broadcast" and user_id in admins:
-        await update.message.reply_text("Xabar yubor:")
-        broadcast_mode[user_id] = True
-        return
-    elif broadcast_mode.get(user_id):
-        for uid, *_ in cursor.execute("SELECT user_id FROM users"):
-            try:
-                await context.bot.send_message(uid, text)
-            except:
-                pass
-        await update.message.reply_text("✅ Yuborildi")
-        broadcast_mode[user_id] = False
-        return
-
-    # Admin qo‘shish
-    elif text == "🔐 Admin qo‘shish" and user_id in admins:
-        await update.message.reply_text("Admin ID yubor:")
-        context.user_data["add_admin"] = True
-        return
-    elif context.user_data.get("add_admin"):
-        admins.append(int(text))
-        await update.message.reply_text("✅ Yangi admin qo‘shildi")
-        context.user_data["add_admin"] = False
-        return
-
-    # Majburiy obuna
-    elif text == "🔒 Majburiy obuna" and user_id in admins:
-        keyboard = [["➕ Qo‘shish"], ["➖ O‘chirish"], ["📋 Ro‘yxat"], ["🔙 Orqaga"]]
-        await update.message.reply_text("Majburiy obuna:", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
-        return
-    elif text == "➕ Qo‘shish" and user_id in admins:
-        await update.message.reply_text("Kanal username yubor (@username):")
-        context.user_data["add_channel"] = True
-        return
-    elif context.user_data.get("add_channel"):
-        add_channel(text)
-        await update.message.reply_text("✅ Qo‘shildi")
-        context.user_data["add_channel"] = False
-        return
-    elif text == "➖ O‘chirish" and user_id in admins:
-        await update.message.reply_text("O‘chirish uchun username yubor:")
-        context.user_data["del_channel"] = True
-        return
-    elif context.user_data.get("del_channel"):
-        del_channel(text)
-        await update.message.reply_text("✅ O‘chirildi")
-        context.user_data["del_channel"] = False
-        return
-    elif text == "📋 Ro‘yxat" and user_id in admins:
-        chs = get_channels()
-        if chs:
-            await update.message.reply_text("\n".join(chs))
-        else:
-            await update.message.reply_text("❌ Bo‘sh")
-        return
-
-    # Userlar
-    elif text == "👥 Userlar" and user_id in admins:
-        cursor.execute("SELECT COUNT(*) FROM users")
-        await update.message.reply_text(f"👥 {cursor.fetchone()[0]} ta user")
-        return
-
-    # Statistika
-    elif text == "📊 Statistika" and user_id in admins:
-        cursor.execute("SELECT SUM(orders) FROM users")
-        await update.message.reply_text(f"📊 Jami buyurtmalar: {cursor.fetchone()[0]}")
-        return
-
-    # Referral
-    elif text == "👤 Referral":
-        link = f"https://t.me/{bot_username}?start={user_id}"
-        refs = get_refs(user_id)
-        await update.message.reply_text(f"👤 Sizning linkingiz:\n{link}\nReferallar: {refs}\n💰 Har biriga: 500 so'm")
-        return
-
-    # Buyurtma
-    elif text == "➕ Buyurtma":
-        await update.message.reply_text("Xizmat yoz (masalan: ❤️ Like):")
-        context.user_data["step"] = "service"
-        return
-    elif context.user_data.get("step") == "service":
-        context.user_data["service"] = text
-        await update.message.reply_text("Link yubor:")
-        context.user_data["step"] = "link"
-        return
-    elif context.user_data.get("step") == "link":
-        context.user_data["link"] = text
-        await update.message.reply_text("Soni:")
-        context.user_data["step"] = "qty"
-        return
-    elif context.user_data.get("step") == "qty":
-        qty = int(text)
-        if is_vip(user_id):
-            qty = int(qty * 1.2)
-        add_order(user_id)
-        result = send_order(context.user_data["service"], context.user_data["link"], qty)
-        await update.message.reply_text(f"✅ Buyurtma ketdi! ({qty})\n{result}")
-        context.user_data.clear()
-        return
-
-    # Balans
-    elif text == "💰 Balans":
+    if data == "balance":
         bal = get_balance(user_id)
-        vip = "⭐ VIP" if is_vip(user_id) else "Oddiy"
-        await update.message.reply_text(f"💰 {bal} so'm\nStatus: {vip}")
+        query.message.edit_text(f"💎 Sizning balans: {bal} diamond")
+
+    elif data == "topup":
+        query.message.edit_text("💰 Miqdorni kiriting (stars):")
+        context.user_data["topup"] = True
+
+    elif data == "referral":
+        link = f"https://t.me/YOUR_BOT_USERNAME?start={user_id}"
+        query.message.edit_text(f"👥 Taklif qiling va pul ishlang!\n\n🔗 {link}\nHar bir referral = 150 💎")
+
+    elif data == "order":
+        query.message.edit_text("📦 Buyurtma berish: Link yuboring:")
+        context.user_data["order"] = "link"
+
+dispatcher.add_handler(CallbackQueryHandler(callback_handler))
+
+# --- MESSAGE HANDLER ---
+def message_handler(update, context):
+    text = update.message.text
+    user_id = update.effective_user.id
+
+    # TOPUP
+    if context.user_data.get("topup"):
+        stars = int(text)
+        diamond = stars * 130
+        update.message.reply_text(f"💳 To‘lov qilish: {stars} ⭐ = {diamond} 💎\n@seenarzonsmm571bot")
+        context.user_data["topup"] = False
         return
 
-    elif text == "🔙 Orqaga":
-        await start(update, context)
-        return
+    # BUYURTMA
+    if context.user_data.get("order") == "link":
+        context.user_data["link"] = text
+        context.user_data["order"] = "count"
+        update.message.reply_text("📊 Miqdor kiriting:")
+    elif context.user_data.get("order") == "count":
+        count = int(text)
+        price = count * 2  # oddiy narx
+        bal = get_balance(user_id)
+        if bal < price:
+            update.message.reply_text("❌ Balans yetarli emas")
+            return
+        update_balance(user_id, -price)
+        update.message.reply_text(f"✅ Buyurtma qabul qilindi!\nLink: {context.user_data['link']}\nMiqdor: {count}\n💎 -{price}")
+        context.user_data["order"] = None
 
-# MAIN
-app = ApplicationBuilder().token(TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
-print("🔥 FULL PRO VIP BOT ISHLADI")
-app.run_polling()
+# ======================
+# FLASK WEBHOOK
+# ======================
+@app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), bot)
+    dispatcher.process_update(update)
+    return "ok"
+
+@app.route("/")
+def index():
+    webhook_url = f"https://YOUR_REPLIT_OR_HEROKU_LINK/{TOKEN}"
+    bot.set_webhook(webhook_url)
+    return "Webhook o‘rnatildi!"
+
+# ======================
+# RUN FLASK
+# ======================
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
