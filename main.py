@@ -1,193 +1,262 @@
 import sqlite3
-from flask import Flask, request
-from telegram import Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Dispatcher, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+import time
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "8648891805:AAFouYZtVYHMGzJJ2dOrTX_mCvYnu53orDM"
+# --- BOT SETTINGS ---
+TOKEN = "8713494465:AAH0UU7rJI4G1nT8VDp6-2Nt5AyQ9FoZ8q0"
 ADMIN_ID = 8487361853
+CHANNEL_ID = "@Lionfreestars"
 
-bot = Bot(token=TOKEN)
-app = Flask(__name__)
-dispatcher = Dispatcher(bot, None, use_context=True)
+REFERRAL_BONUS = 3
+BONUS_AMOUNT = 0.5
 
-# ======================
-# DATABASE
-# ======================
+# --- DATABASE ---
 conn = sqlite3.connect("bot.db", check_same_thread=False)
 cursor = conn.cursor()
 
+# ❗ MUHIM: eski jadvalni yangilash
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY,
-    balance INTEGER DEFAULT 0,
-    ref_by INTEGER
+    username TEXT,
+    balance REAL DEFAULT 0,
+    refs INTEGER DEFAULT 0,
+    inviter INTEGER,
+    last_bonus INTEGER DEFAULT 0,
+    banned INTEGER DEFAULT 0
 )
 """)
+
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS channels (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT
+CREATE TABLE IF NOT EXISTS promocodes (
+    code TEXT PRIMARY KEY,
+    value REAL,
+    uses INTEGER
 )
 """)
+
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS services (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    api_id INTEGER,
-    price INTEGER,
-    min INTEGER,
-    max INTEGER
+CREATE TABLE IF NOT EXISTS used_codes (
+    user_id INTEGER,
+    code TEXT
 )
 """)
+
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER PRIMARY KEY,
     user_id INTEGER,
-    link TEXT,
-    count INTEGER,
-    service_id INTEGER,
-    status TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    amount INTEGER,
+    status TEXT
 )
 """)
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    value TEXT
-)
-""")
+
 conn.commit()
 
-# ======================
-# UTILITY FUNCTIONS
-# ======================
-def get_balance(user_id):
-    cursor.execute("SELECT balance FROM users WHERE user_id=?", (user_id,))
-    r = cursor.fetchone()
-    return r[0] if r else 0
+# --- KEYBOARDS ---
+def main_menu():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🌟 Заработать", callback_data="earn"),
+         InlineKeyboardButton("📤 Вывести", callback_data="withdraw")],
+        [InlineKeyboardButton("👤 Профиль", callback_data="profile"),
+         InlineKeyboardButton("🎁 Бонус", callback_data="bonus")],
+        [InlineKeyboardButton("🎁 Промокод", callback_data="promo"),
+         InlineKeyboardButton("🏆 Топ", callback_data="top")]
+    ])
 
-def update_balance(user_id, amount):
-    cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (amount, user_id))
-    conn.commit()
+def back_button():
+    return InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Назад", callback_data="back")]])
 
-def get_setting(key, default):
-    cursor.execute("SELECT value FROM settings WHERE key=?", (key,))
-    r = cursor.fetchone()
-    return int(r[0]) if r else default
+def withdraw_buttons():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("15 ⭐️", callback_data="w_15"),
+         InlineKeyboardButton("25 ⭐️", callback_data="w_25")],
+        [InlineKeyboardButton("50 ⭐️", callback_data="w_50"),
+         InlineKeyboardButton("100 ⭐️", callback_data="w_100")],
+        [InlineKeyboardButton("Telegram Premium (350⭐️)", callback_data="w_350")],
+        [InlineKeyboardButton("⬅️ Назад", callback_data="back")]
+    ])
 
-# ======================
-# HANDLERS
-# ======================
-def start(update, context):
-    user_id = update.effective_user.id
+# --- START ---
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
     args = context.args
-    ref = int(args[0]) if args else None
 
-    cursor.execute("SELECT * FROM users WHERE user_id=?", (user_id,))
-    user = cursor.fetchone()
-    if not user:
-        cursor.execute("INSERT INTO users (user_id, ref_by) VALUES (?,?)", (user_id, ref))
+    inviter = None
+    if args:
+        try:
+            inviter = int(args[0])
+        except:
+            pass
+
+    username = user.username if user.username else "NoName"
+
+    cursor.execute("SELECT * FROM users WHERE user_id=?", (user.id,))
+    if not cursor.fetchone():
+        cursor.execute(
+            "INSERT INTO users (user_id, username, inviter) VALUES (?, ?, ?)",
+            (user.id, username, inviter)
+        )
         conn.commit()
-        if ref:
-            update_balance(ref, 150)  # referral bonus
 
-    keyboard = [
-        [InlineKeyboardButton("📦 Buyurtma berish", callback_data="order")],
-        [InlineKeyboardButton("💎 Balans", callback_data="balance"),
-         InlineKeyboardButton("💰 Balans to‘ldirish", callback_data="topup")],
-        [InlineKeyboardButton("👥 Pul ishlash", callback_data="referral")]
-    ]
-    update.message.reply_text("🔥 Xush kelibsiz PRO VIP BOT ga!", reply_markup=InlineKeyboardMarkup(keyboard))
+        # referral bonus
+        if inviter and inviter != user.id:
+            cursor.execute(
+                "UPDATE users SET refs = refs + 1, balance = balance + ? WHERE user_id=?",
+                (REFERRAL_BONUS, inviter)
+            )
+            conn.commit()
 
-dispatcher.add_handler(CommandHandler("start", start, pass_args=True))
+    referral_link = f"https://t.me/Lionfreestarsbot?start={user.id}"
 
-# --- ADMIN PANEL ---
-def admin(update, context):
-    if update.effective_user.id != ADMIN_ID:
-        return
-    keyboard = [
-        [InlineKeyboardButton("📦 Xizmatlar", callback_data="services")],
-        [InlineKeyboardButton("📊 Statistika", callback_data="stats")],
-        [InlineKeyboardButton("📢 Kanallar", callback_data="channels")],
-        [InlineKeyboardButton("⚙️ Sozlamalar", callback_data="settings")],
-        [InlineKeyboardButton("📋 Buyurtmalar", callback_data="orders")]
-    ]
-    update.message.reply_text("🔐 ADMIN PANEL", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(
+        f"✨ Добро пожаловать!\n\n🔗 Ваша ссылка:\n{referral_link}",
+        reply_markup=main_menu()
+    )
 
-dispatcher.add_handler(CommandHandler("admin", admin))
-
-# --- CALLBACKS ---
-def callback_handler(update, context):
+# --- CALLBACK ---
+async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
-    data = query.data
+    await query.answer()
 
-    if data == "balance":
-        bal = get_balance(user_id)
-        query.message.edit_text(f"💎 Sizning balans: {bal} diamond")
+    if query.data == "back":
+        await query.message.edit_text("Главное меню", reply_markup=main_menu())
 
-    elif data == "topup":
-        query.message.edit_text("💰 Miqdorni kiriting (stars):")
-        context.user_data["topup"] = True
+    elif query.data == "earn":
+        link = f"https://t.me/YOUR_BOT?start={user_id}"
+        await query.message.edit_text(
+            f"Приглашай друзей:\n\n{link}\n\n+{REFERRAL_BONUS}⭐️",
+            reply_markup=back_button()
+        )
 
-    elif data == "referral":
-        link = f"https://t.me/YOUR_BOT_USERNAME?start={user_id}"
-        query.message.edit_text(f"👥 Taklif qiling va pul ishlang!\n\n🔗 {link}\nHar bir referral = 150 💎")
+    elif query.data == "withdraw":
+        await query.message.edit_text("Выберите сумму:", reply_markup=withdraw_buttons())
 
-    elif data == "order":
-        query.message.edit_text("📦 Buyurtma berish: Link yuboring:")
-        context.user_data["order"] = "link"
+    elif query.data.startswith("w_"):
+        amount = int(query.data.split("_")[1])
 
-dispatcher.add_handler(CallbackQueryHandler(callback_handler))
+        cursor.execute("SELECT balance FROM users WHERE user_id=?", (user_id,))
+        data = cursor.fetchone()
 
-# --- MESSAGE HANDLER ---
-def message_handler(update, context):
-    text = update.message.text
-    user_id = update.effective_user.id
-
-    # TOPUP
-    if context.user_data.get("topup"):
-        stars = int(text)
-        diamond = stars * 130
-        update.message.reply_text(f"💳 To‘lov qilish: {stars} ⭐ = {diamond} 💎\n@seenarzonsmm571bot")
-        context.user_data["topup"] = False
-        return
-
-    # BUYURTMA
-    if context.user_data.get("order") == "link":
-        context.user_data["link"] = text
-        context.user_data["order"] = "count"
-        update.message.reply_text("📊 Miqdor kiriting:")
-    elif context.user_data.get("order") == "count":
-        count = int(text)
-        price = count * 2  # oddiy narx
-        bal = get_balance(user_id)
-        if bal < price:
-            update.message.reply_text("❌ Balans yetarli emas")
+        if not data:
             return
-        update_balance(user_id, -price)
-        update.message.reply_text(f"✅ Buyurtma qabul qilindi!\nLink: {context.user_data['link']}\nMiqdor: {count}\n💎 -{price}")
-        context.user_data["order"] = None
 
-dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+        bal = data[0]
 
-# ======================
-# FLASK WEBHOOK
-# ======================
-@app.route(f"/{TOKEN}", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    dispatcher.process_update(update)
-    return "ok"
+        if bal < amount:
+            await query.message.edit_text("❌ Недостаточно средств", reply_markup=back_button())
+            return
 
-@app.route("/")
-def index():
-    webhook_url = f"https://YOUR_REPLIT_OR_HEROKU_LINK/{TOKEN}"
-    bot.set_webhook(webhook_url)
-    return "Webhook o‘rnatildi!"
+        cursor.execute("UPDATE users SET balance = balance - ? WHERE user_id=?", (amount, user_id))
+        conn.commit()
 
-# ======================
-# RUN FLASK
-# ======================
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+        cursor.execute("SELECT MAX(order_id) FROM orders")
+        last = cursor.fetchone()[0]
+        order_id = 1 if last is None else last + 1
+
+        cursor.execute(
+            "INSERT INTO orders VALUES (?, ?, ?, ?)",
+            (order_id, user_id, amount, "pending")
+        )
+        conn.commit()
+
+        await context.bot.send_message(
+            chat_id=CHANNEL_ID,
+            text=f"🆕 Заявка #{order_id}\nID: {user_id}\nСумма: {amount}⭐️"
+        )
+
+        await query.message.edit_text("✅ Заявка отправлена!", reply_markup=back_button())
+
+    elif query.data == "profile":
+        cursor.execute("SELECT balance, refs, username FROM users WHERE user_id=?", (user_id,))
+        data = cursor.fetchone()
+
+        if not data:
+            return
+
+        bal, refs, username = data
+
+        await query.message.edit_text(
+            f"👤 @{username}\n💰 {bal}⭐️\n👥 {refs} рефералов",
+            reply_markup=back_button()
+        )
+
+    elif query.data == "bonus":
+        cursor.execute("SELECT last_bonus FROM users WHERE user_id=?", (user_id,))
+        data = cursor.fetchone()
+
+        if not data:
+            return
+
+        last = data[0]
+        now = int(time.time())
+
+        if now - last >= 3600:
+            cursor.execute(
+                "UPDATE users SET balance = balance + ?, last_bonus=? WHERE user_id=?",
+                (BONUS_AMOUNT, now, user_id)
+            )
+            conn.commit()
+            text = f"✅ +{BONUS_AMOUNT}⭐️"
+        else:
+            text = "❌ Уже получали"
+
+        await query.message.edit_text(text, reply_markup=back_button())
+
+    elif query.data == "promo":
+        context.user_data["promo"] = True
+        await query.message.edit_text("Введите промокод:")
+
+    elif query.data == "top":
+        cursor.execute("SELECT username, refs FROM users ORDER BY refs DESC LIMIT 5")
+        rows = cursor.fetchall()
+
+        text = "🏆 ТОП:\n\n"
+        for i, row in enumerate(rows):
+            name = row[0] if row[0] else "NoName"
+            text += f"{i+1}. @{name} — {row[1]}\n"
+
+        await query.message.edit_text(text, reply_markup=back_button())
+
+# --- PROMO ---
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("promo"):
+        user_id = update.effective_user.id
+        code = update.message.text
+
+        cursor.execute("SELECT value, uses FROM promocodes WHERE code=?", (code,))
+        data = cursor.fetchone()
+
+        if not data:
+            await update.message.reply_text("❌ Неверный код")
+            return
+
+        value, uses = data
+
+        if uses <= 0:
+            await update.message.reply_text("❌ Закончился")
+            return
+
+        cursor.execute("SELECT * FROM used_codes WHERE user_id=? AND code=?", (user_id, code))
+        if cursor.fetchone():
+            await update.message.reply_text("❌ Уже использован")
+            return
+
+        cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (value, user_id))
+        cursor.execute("UPDATE promocodes SET uses = uses - 1 WHERE code=?", (code,))
+        cursor.execute("INSERT INTO used_codes VALUES (?,?)", (user_id, code))
+        conn.commit()
+
+        await update.message.reply_text(f"✅ +{value}⭐️")
+        context.user_data["promo"] = False
+
+# --- RUN ---
+app = ApplicationBuilder().token(TOKEN).build()
+
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CallbackQueryHandler(buttons))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
+app.run_polling()
