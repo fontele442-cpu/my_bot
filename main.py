@@ -125,7 +125,7 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.edit_text("Главное меню", reply_markup=main_menu())
 
     elif query.data == "earn":
-        link = f"https://t.me/YOUR_BOT?start={user_id}"
+        link = f"https://t.me/Lionfreestarsbot?start={user_id}"
         await query.message.edit_text(
             f"Приглашай друзей:\n\n{link}\n\n+{REFERRAL_BONUS}⭐️",
             reply_markup=back_button()
