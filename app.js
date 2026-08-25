@@ -437,8 +437,8 @@ genStars();
 
 /* ---------- 7. PRICES ---------- */
 
-function coinCostForLevel(kind, level){
-  return PRICING[kind].base * Math.pow(3, level-1);
+function crystalCostForLevel(kind, level){
+  return Math.pow(2, level - 1);
 }
 
 function crystalCostForLevel(kind, level){
