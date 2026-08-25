@@ -11,8 +11,8 @@ const cors = require('cors');
 const TelegramBot = require('node-telegram-bot-api');
 
 /* ---- CONFIG (fill these in, or use environment variables) ---- */
-const BOT_TOKEN   = process.env.BOT_TOKEN   || "YOUR_BOT_TOKEN_HERE";
-const ADMIN_ID    = process.env.ADMIN_ID    || "YOUR_TELEGRAM_ID_HERE"; // numeric string
+const BOT_TOKEN   = process.env.BOT_TOKEN   || "8909351009:AAFlwEBrHi_8R2rbuYMKU7s5zBFIsYLO1hw";
+const ADMIN_ID    = process.env.ADMIN_ID    || "8487361853"; // numeric string
 const WEBAPP_URL  = process.env.WEBAPP_URL  || "https://t.me/Tap_galaxycoinbot/Galaxy";
 const PORT        = process.env.PORT        || 3000;
 
