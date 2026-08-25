@@ -801,19 +801,19 @@ async function enterWithoutLogin(){
 
       telegramId:telegramId,
 
-      coins:9999999999,
+      coins:0,
 
-      crystals:9999999999,
+      crystals:0,
 
-      tapLevel:9999999999,
+      tapLevel:1,
 
-      energyLevel:9999999999,
+      energyLevel:1,
 
-      regenLevel:9999999999,
+      regenLevel:1,
 
-      maxEnergy:99999999999,
+      maxEnergy:500,
 
-      energy:99999999999,
+      energy:500,
 
       regen:1,
 
