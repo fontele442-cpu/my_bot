@@ -470,63 +470,72 @@ function crystalCostForLevel(kind, level){
   return 40 + (level - 6) * 10;
 
 }
+
 /* ---------- 8. LANGUAGE ---------- */
 
-document
-  .querySelectorAll('#screen-lang .lang-btn')
-  .forEach(btn=>{
+/* Til tanlash — HTML qachon yuklanganidan qat'i nazar ishlaydi */
+document.addEventListener('click', async (e) => {
 
-    btn.addEventListener('click', async ()=>{
+  const langBtn = e.target.closest('#screen-lang .lang-btn');
 
-      currentLang = btn.dataset.lang;
+  if(langBtn){
 
-      localStorage.setItem(
-        'gc_lang',
-        currentLang
-      );
+    const lang = langBtn.dataset.lang;
 
-      applyTranslations();
+    if(!lang || !LANG[lang]){
+      console.error('Noto‘g‘ri til:', lang);
+      return;
+    }
 
-      /*
-       * MUHIM:
-       * Login/Register yo'q.
-       * Til tanlangandan keyin avtomatik kiradi.
-       */
+    currentLang = lang;
 
-      await enterWithoutLogin();
+    localStorage.setItem(
+      'gc_lang',
+      currentLang
+    );
 
-    });
+    applyTranslations();
 
-});
+    console.log('Til tanlandi:', currentLang);
+
+    await enterWithoutLogin();
+
+    return;
+  }
 
 
-document
-  .querySelectorAll('[data-lang-switch]')
-  .forEach(btn=>{
+  /* Settings ichidagi til almashtirish */
+  const switchBtn = e.target.closest('[data-lang-switch]');
 
-    btn.addEventListener('click', ()=>{
+  if(switchBtn){
 
-      currentLang =
-        btn.dataset.langSwitch;
+    const lang = switchBtn.dataset.langSwitch;
 
-      localStorage.setItem(
-        'gc_lang',
-        currentLang
-      );
+    if(!lang || !LANG[lang]){
+      console.error('Noto‘g‘ri til:', lang);
+      return;
+    }
 
-      applyTranslations();
+    currentLang = lang;
 
-      closeModal('modal-lang');
+    localStorage.setItem(
+      'gc_lang',
+      currentLang
+    );
 
-      if(user){
-        renderMain();
-        renderShop();
-        renderTasks();
-      }
+    applyTranslations();
 
-      toast(t('toastSaved'));
+    closeModal('modal-lang');
 
-    });
+    if(user){
+      renderMain();
+      renderShop();
+      renderTasks();
+    }
+
+    toast(t('toastSaved'));
+
+  }
 
 });
 
@@ -538,23 +547,6 @@ function applyTranslations(){
     if(el) el.textContent=t(key);
   };
 
-  /*
-   * Login elementlari HTMLda qolgan bo'lsa ham
-   * xatolik bermasligi uchun tekshirilyapti.
-   */
-
-  setText('lbl-login-username','username');
-  setText('lbl-login-code','code');
-  setText('btn-login','btnLogin');
-  setText('tab-login','login');
-  setText('tab-register','register');
-
-  setText('lbl-reg-name','yourName');
-  setText('lbl-reg-username','username');
-  setText('hint-username','usernameHint');
-  setText('lbl-reg-code','code');
-  setText('lbl-reg-code2','confirmCode');
-  setText('btn-register','btnRegister');
 
   setText('loading-text','loading');
 
@@ -578,7 +570,7 @@ function applyTranslations(){
   setText('lbl-set-devices','devices');
   setText('lbl-set-gift','sendGift');
 
-  const adminLabel=$('lbl-set-admin');
+  const adminLabel = $('lbl-set-admin');
 
   if(adminLabel){
     adminLabel.innerHTML =
@@ -600,7 +592,6 @@ function applyTranslations(){
   document.documentElement.lang =
     currentLang || 'en';
 }
-
 
 /* =========================================================
    9. AUTO USER SYSTEM
