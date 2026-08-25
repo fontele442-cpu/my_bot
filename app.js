@@ -455,19 +455,19 @@ function crystalCostForLevel(kind, level){
   level = Math.max(1, Number(level) || 1);
 
   const crystalPrices = {
-    1: 1,
-    2: 5,
-    3: 10,
-    4: 20,
-    5: 30,
-    6: 40
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+    6: 0
   };
 
   if(crystalPrices[level] !== undefined){
     return crystalPrices[level];
   }
 
-  return 40 + (level - 6) * 10;
+  return 0 + (level - 6) * 0;
 
 }
 
