@@ -437,18 +437,6 @@ genStars();
 
 function coinCostForLevel(kind, level){
 
-  level = Math.max(1, Number(level) || 1);
-
-  if(level === 1){
-    return 1;
-  }
-
-  if(level === 2){
-    return 500;
-  }
-
-  return 500 * Math.pow(3, level - 2);
-}
 
 
 function crystalCostForLevel(kind, level){
@@ -1515,7 +1503,6 @@ document
 /* =========================================================
    16. SHOP
    ========================================================= */
-
 function renderShop(){
 
   if(!user) return;
@@ -1528,9 +1515,7 @@ function renderShop(){
       desc:t('tapPowerDesc'),
       level:user.tapLevel,
       valueNow:user.tapLevel,
-      valueNext:
-        user.tapLevel +
-        PRICING.tap.step,
+      valueNext:user.tapLevel + 1,
       icon:'🪙'
     },
 
@@ -1540,9 +1525,7 @@ function renderShop(){
       desc:t('maxEnergyDesc'),
       level:user.energyLevel,
       valueNow:user.maxEnergy,
-      valueNext:
-        user.maxEnergy +
-        PRICING.energy.step,
+      valueNext:user.maxEnergy + PRICING.energy.step,
       icon:'⚡'
     },
 
@@ -1552,32 +1535,21 @@ function renderShop(){
       desc:t('energyRegenDesc'),
       level:user.regenLevel,
       valueNow:user.regen,
-      valueNext:
-        user.regen +
-        PRICING.regen.step,
+      valueNext:user.regen + PRICING.regen.step,
       icon:'🔋'
     }
 
   ];
 
-
   let html='';
 
-
   items.forEach(it=>{
-
-    const coinCost =
-      coinCostForLevel(
-        it.key,
-        it.level
-      );
 
     const crystalCost =
       crystalCostForLevel(
         it.key,
         it.level
       );
-
 
     html += `
 
@@ -1593,8 +1565,7 @@ function renderShop(){
           <div class="shop-item-level">
             ${t('level')}
             ${it.level}
-            (${it.valueNow}
-            ${t('current')})
+            (${it.valueNow} ${t('current')})
           </div>
 
         </div>
@@ -1607,17 +1578,8 @@ function renderShop(){
         <div class="buy-row">
 
           <button
-            class="buy-btn coin"
-            data-buy="${it.key}"
-            data-cur="coin"
-          >
-            🪙 ${fmt(coinCost)}
-          </button>
-
-          <button
             class="buy-btn crystal"
             data-buy="${it.key}"
-            data-cur="crystal"
           >
             💎 ${fmt(crystalCost)}
           </button>
@@ -1630,6 +1592,8 @@ function renderShop(){
 
   });
 
+
+  /* ⚡ ENERGY REFILL */
 
   html += `
 
@@ -1663,14 +1627,49 @@ function renderShop(){
   `;
 
 
+  /* 🪙 COIN → CRYSTAL */
+
+  html += `
+
+    <div class="card shop-item">
+
+      <div class="shop-item-top">
+
+        <div class="shop-item-name">
+          🪙 Coin → 💎 Crystal
+        </div>
+
+      </div>
+
+      <div class="shop-item-desc">
+        500 🪙 = 1 💎
+      </div>
+
+      <div class="buy-row">
+
+        <button
+          class="buy-btn crystal"
+          id="exchange-500"
+        >
+          🪙 500 → 💎 1
+        </button>
+
+      </div>
+
+    </div>
+
+  `;
+
+
   const shopItems =
     $('shop-items');
 
   if(shopItems){
-    shopItems.innerHTML =
-      html;
+    shopItems.innerHTML = html;
   }
 
+
+  /* Upgrade buttons */
 
   document
     .querySelectorAll('[data-buy]')
@@ -1679,13 +1678,14 @@ function renderShop(){
       btn.addEventListener(
         'click',
         ()=>buyUpgrade(
-          btn.dataset.buy,
-          btn.dataset.cur
+          btn.dataset.buy
         )
       );
 
     });
 
+
+  /* Refill */
 
   const refillBtn =
     $('buy-refill');
@@ -1699,168 +1699,20 @@ function renderShop(){
 
   }
 
-}
 
+  /* Exchange */
 
-async function buyUpgrade(
-  kind,
-  currency
-){
+  const exchangeBtn =
+    $('exchange-500');
 
-  if(!user) return;
+  if(exchangeBtn){
 
-  const levelField =
-    kind + 'Level';
-
-  const level =
-    user[levelField];
-
-  const coinCost =
-    coinCostForLevel(
-      kind,
-      level
+    exchangeBtn.addEventListener(
+      'click',
+      exchangeCoinsForCrystal
     );
 
-  const crystalCost =
-    crystalCostForLevel(
-      kind,
-      level
-    );
-
-
-  if(currency==='coin'){
-
-    if(
-      user.coins <
-      coinCost
-    ){
-
-      toast(
-        t('toastNotEnough')
-      );
-
-      return;
-    }
-
-    user.coins -=
-      coinCost;
-
-  }else{
-
-    if(
-      user.crystals <
-      crystalCost
-    ){
-
-      toast(
-        t('toastNotEnough')
-      );
-
-      return;
-    }
-
-    user.crystals -=
-      crystalCost;
-
   }
-
-
-  user[levelField] += 1;
-
-
-  if(kind==='tap'){
-
-    user.tapLevel =
-      user[levelField];
-
-  }
-
-  if(kind==='energy'){
-
-    user.maxEnergy +=
-      PRICING.energy.step;
-
-  }
-
-  if(kind==='regen'){
-
-    user.regen +=
-      PRICING.regen.step;
-
-  }
-
-
-  if(userRef){
-
-    await userRef.update({
-
-      coins:user.coins,
-
-      crystals:user.crystals,
-
-      tapLevel:user.tapLevel,
-
-      energyLevel:user.energyLevel,
-
-      regenLevel:user.regenLevel,
-
-      maxEnergy:user.maxEnergy,
-
-      regen:user.regen
-
-    });
-
-  }
-
-
-  toast(
-    t('toastBought')
-  );
-
-  renderMain();
-  renderShop();
-
-}
-
-
-async function buyRefill(){
-
-  if(!user) return;
-
-  if(user.crystals < 10){
-
-    toast(
-      t('toastNotEnough')
-    );
-
-    return;
-  }
-
-  user.crystals -= 10;
-
-  user.energy =
-    user.maxEnergy;
-
-
-  if(userRef){
-
-    await userRef.update({
-
-      crystals:user.crystals,
-
-      energy:user.energy
-
-    });
-
-  }
-
-
-  toast(
-    t('toastBought')
-  );
-
-  renderMain();
-  renderShop();
 
 }
 
