@@ -435,7 +435,6 @@ function genStars(){
 genStars();
 
 
-function coinCostForLevel(kind, level){
 
   level = Math.max(1, Number(level) || 1);
 
@@ -470,6 +469,7 @@ function crystalCostForLevel(kind, level){
   return 40 + (level - 6) * 10;
 
 }
+
 
 /* ---------- 8. LANGUAGE ---------- */
 
