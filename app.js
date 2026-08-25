@@ -437,35 +437,38 @@ genStars();
 
 /* ---------- 7. PRICES ---------- */
 
-/* ---------- 7. PRICES ---------- */
-
 function coinCostForLevel(kind, level){
 
-  if(level <= 1){
+  level = Math.max(1, Number(level) || 1);
+
+  const config = PRICING[kind];
+
+  if(!config){
     return 1;
   }
 
-  if(level === 2){
-    return 5;
-  }
-
-  if(level === 3){
-    return 10;
-  }
-
-  return 10 + ((level - 3) * 10);
+  return config.base + (level - 1) * config.step;
 }
 
 
 function crystalCostForLevel(kind, level){
 
-  return Math.max(
-    1,
-    Math.round(
-      coinCostForLevel(kind, level) / CRYSTAL_RATIO
-    )
-  );
+  level = Math.max(1, Number(level) || 1);
 
+  const crystalPrices = {
+    1: 1,
+    2: 5,
+    3: 10,
+    4: 20,
+    5: 30,
+    6: 40
+  };
+
+  if(crystalPrices[level] !== undefined){
+    return crystalPrices[level];
+  }
+
+  return 40 + (level - 6) * 10;
 }
 /* ---------- 8. LANGUAGE ---------- */
 
