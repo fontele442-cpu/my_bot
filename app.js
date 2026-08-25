@@ -437,15 +437,13 @@ genStars();
 
 /* ---------- 7. PRICES ---------- */
 
-function crystalCostForLevel(kind, level){
-  return Math.pow(2, level - 1);
+function crystalCostForLevel(kind, level) {
+  if (level === 1) return 1;
+  if (level === 2) return 5;
+  return 10 + (level - 3) * 10;
 }
 
-function crystalCostForLevel(kind, level){
-  return Math.round(
-    coinCostForLevel(kind, level) / CRYSTAL_RATIO
-  );
-}
+
 
 
 /* ---------- 8. LANGUAGE ---------- */
