@@ -435,19 +435,19 @@ function genStars(){
 genStars();
 
 
-/* ---------- 7. PRICES ---------- */
-
 function coinCostForLevel(kind, level){
 
   level = Math.max(1, Number(level) || 1);
 
-  const config = PRICING[kind];
-
-  if(!config){
+  if(level === 1){
     return 1;
   }
 
-  return config.base + (level - 1) * config.step;
+  if(level === 2){
+    return 500;
+  }
+
+  return 500 * Math.pow(3, level - 2);
 }
 
 
