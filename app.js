@@ -441,15 +441,11 @@ function crystalCostForLevel(kind, level){
   return Math.pow(2, level - 1);
 }
 
-
 function crystalCostForLevel(kind, level){
   return Math.round(
     coinCostForLevel(kind, level) / CRYSTAL_RATIO
   );
 }
-
-
-
 /* ---------- 8. LANGUAGE ---------- */
 
 document
