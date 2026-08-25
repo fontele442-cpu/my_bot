@@ -443,6 +443,11 @@ function crystalCostForLevel(kind, level) {
   return 10 + (level - 3) * 10;
 }
 
+function crystalCostForLevel(kind, level){
+  return Math.round(
+    coinCostForLevel(kind, level) / CRYSTAL_RATIO
+  );
+}
 
 
 
