@@ -3340,4 +3340,272 @@ async function tryTelegramUser() {
 
 
 /* =========================================================
-   EVENT
+   EVENT LISTENERS
+   ========================================================= */
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  createStars();
+
+  /* Til tanlash */
+  document.querySelectorAll("[data-lang]").forEach(button => {
+    button.addEventListener("click", () => {
+      const lang = button.dataset.lang;
+      selectLanguage(lang);
+    });
+  });
+
+  /* Sozlamalardagi til */
+  document.querySelectorAll("[data-lang-switch]").forEach(button => {
+    button.addEventListener("click", () => {
+      const lang = button.dataset.langSwitch;
+      selectLanguage(lang);
+    });
+  });
+
+  /* Login / Register tab */
+  document.querySelectorAll(".tab").forEach(button => {
+    button.addEventListener("click", () => {
+      setAuthTab(button.dataset.tab);
+    });
+  });
+
+  /* Login */
+  const loginForm = $("form-login");
+
+  if (loginForm) {
+    loginForm.addEventListener("submit", loginUser);
+  }
+
+  /* Register */
+  const registerForm = $("form-register");
+
+  if (registerForm) {
+    registerForm.addEventListener("submit", registerUser);
+  }
+
+  /* Main tap */
+  const planet = $("planet-btn");
+
+  if (planet) {
+    planet.addEventListener("click", tapPlanet);
+  }
+
+  /* Bottom navigation */
+  document.querySelectorAll(".nav-btn").forEach(button => {
+    button.addEventListener("click", () => {
+      openNav(button.dataset.nav);
+    });
+  });
+
+  /* Back buttons */
+  document.querySelectorAll("[data-back]").forEach(button => {
+    button.addEventListener("click", () => {
+      openNav(button.dataset.back);
+    });
+  });
+
+  /* Shop */
+  document.addEventListener("click", event => {
+
+    const buyButton =
+      event.target.closest("[data-buy-type]");
+
+    if (buyButton) {
+      buyShopItem(
+        buyButton.dataset.shopId,
+        buyButton.dataset.buyType
+      );
+    }
+
+  });
+
+  /* Tasks */
+  document.addEventListener("click", event => {
+
+    const taskButton =
+      event.target.closest("[data-task-id]");
+
+    if (taskButton) {
+      completeTask(
+        taskButton.dataset.taskId
+      );
+    }
+
+  });
+
+  /* Referral copy */
+  const refCopy = $("ref-copy");
+
+  if (refCopy) {
+    refCopy.addEventListener(
+      "click",
+      copyReferralLink
+    );
+  }
+
+  /* Settings */
+  const languageRow = $("row-language");
+
+  if (languageRow) {
+    languageRow.addEventListener(
+      "click",
+      openSettingsLanguage
+    );
+  }
+
+  const devicesRow = $("row-devices");
+
+  if (devicesRow) {
+    devicesRow.addEventListener(
+      "click",
+      openDevices
+    );
+  }
+
+  const giftRow = $("row-gift");
+
+  if (giftRow) {
+    giftRow.addEventListener("click", () => {
+      openModal("modal-gift");
+    });
+  }
+
+  const adminRow = $("row-admin");
+
+  if (adminRow) {
+    adminRow.addEventListener("click", () => {
+      renderAdminTasks();
+      showScreen("admin");
+    });
+  }
+
+  const logoutRow = $("row-logout");
+
+  if (logoutRow) {
+    logoutRow.addEventListener(
+      "click",
+      logout
+    );
+  }
+
+  /* Gift */
+  const giftButton = $("gift-confirm-btn");
+
+  if (giftButton) {
+    giftButton.addEventListener(
+      "click",
+      sendCrystals
+    );
+  }
+
+  /* Admin */
+  const addTaskButton =
+    $("ad-add-task-btn");
+
+  if (addTaskButton) {
+    addTaskButton.addEventListener(
+      "click",
+      adminAddTask
+    );
+  }
+
+  const giveButton =
+    $("ad-give-btn");
+
+  if (giveButton) {
+    giveButton.addEventListener(
+      "click",
+      adminGiveCurrency
+    );
+  }
+
+  const lookupButton =
+    $("ad-lookup-btn");
+
+  if (lookupButton) {
+    lookupButton.addEventListener(
+      "click",
+      adminLookupUser
+    );
+  }
+
+  /* Delete task */
+  document.addEventListener("click", event => {
+
+    const button =
+      event.target.closest("[data-delete-task]");
+
+    if (button) {
+      deleteTask(
+        button.dataset.deleteTask
+      );
+    }
+
+  });
+
+  /* Device remove */
+  document.addEventListener("click", event => {
+
+    const button =
+      event.target.closest("[data-device-id]");
+
+    if (button) {
+      removeDevice(
+        button.dataset.deviceId
+      );
+    }
+
+  });
+
+  /* Modal close */
+  document.querySelectorAll("[data-close]").forEach(button => {
+
+    button.addEventListener("click", () => {
+      closeModal(button.dataset.close);
+    });
+
+  });
+
+  /* Modal tashqarisini bosish */
+  document.querySelectorAll(".modal-overlay").forEach(modal => {
+
+    modal.addEventListener("click", event => {
+
+      if (event.target === modal) {
+        modal.classList.remove("active");
+      }
+
+    });
+
+  });
+
+
+  /* Boshlang'ich holat */
+
+  if (state.language) {
+
+    updateLanguageUI();
+
+    if (loadLocalAccount()) {
+
+      updateMainUI();
+      updateReferralUI();
+      updateDevicesUI();
+      updateAdminUI();
+
+      startLoading();
+
+    } else {
+
+      showScreen("auth");
+
+    }
+
+  } else {
+
+    showScreen("lang");
+
+  }
+
+});
