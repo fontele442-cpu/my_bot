@@ -1,1591 +1,1905 @@
 /* =========================================================
-   GALAXY COIN — Telegram Mini App
-   AUTO ENTRY VERSION
-   Login / Register / 8-digit code removed
+   GALAXY COIN — app.js
    ========================================================= */
 
-/* ---------- 1. FIREBASE CONFIG ---------- */
+"use strict";
+
+/* =========================================================
+   TELEGRAM
+   ========================================================= */
+
+const tg =
+  window.Telegram &&
+  window.Telegram.WebApp
+    ? window.Telegram.WebApp
+    : null;
+
+if (tg) {
+  try {
+    tg.ready();
+    tg.expand();
+
+    if (tg.setHeaderColor) {
+      tg.setHeaderColor("#080817");
+    }
+
+    if (tg.setBackgroundColor) {
+      tg.setBackgroundColor("#080817");
+    }
+  } catch (e) {
+    console.warn("Telegram WebApp init:", e);
+  }
+}
+
+
+/* =========================================================
+   FIREBASE CONFIG
+   MUHIM:
+   O'ZINGNING FIREBASE CONFIGINGNI SHU YERGA QO'YASAN
+   ========================================================= */
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAJwKitDkBKyLwomYAeoceQIYaSquefxSc",
-  authDomain: "galaxy-coin-4cde5.firebaseapp.com",
-  projectId: "galaxy-coin-4cde5",
-  storageBucket: "galaxy-coin-4cde5.firebasestorage.app",
-  messagingSenderId: "677981465978",
-  appId: "1:677981465978:web:738b96c89f85047672bac3"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 
-/* Bot server */
-const BOT_SERVER_URL = "";
-
-/* Telegram Bot */
-const BOT_USERNAME = "Tap_galaxycoinbot";
-const APP_SHORT_NAME = "Galaxy";
-
-/* ---------- 2. TRANSLATIONS ---------- */
-
-const LANG = {
-
-en:{
-  chooseLang:"Choose your language",
-
-  loading:"Loading galaxy...",
-  energy:"Energy",
-
-  navTap:"Tap",
-  navShop:"Shop",
-  navTasks:"Tasks",
-  navSettings:"Settings",
-
-  shopTitle:"Shop",
-  tapPower:"Tap power",
-  maxEnergy:"Max energy",
-  energyRegen:"Energy regen",
-
-  tapPowerDesc:"Coins earned per tap",
-  maxEnergyDesc:"Maximum energy capacity",
-  energyRegenDesc:"Energy restored per second",
-
-  level:"Level",
-  current:"current",
-
-  buyCoin:"Coins",
-  buyCrystal:"Crystals",
-
-  refillEnergy:"Refill energy",
-  refillDesc:"Instantly restore full energy",
-
-  tasksTitle:"Tasks",
-
-  refTitle:"👥 Referral",
-  refDesc:"Invite friends: you get 100💎, your friend gets 50💎",
-
-  copyLink:"Copy link",
-  linkCopied:"Link copied!",
-
-  invited:"Invited",
-
-  join:"Join",
-  check:"Check",
-  done:"Done ✓",
-
-  settingsTitle:"Settings",
-  language:"Language",
-  devices:"Connected devices",
-  sendGift:"Send crystals",
-  adminPanel:"Admin panel",
-  logout:"Log out",
-
-  giftUser:"Recipient username",
-  giftAmount:"Amount (min 10)",
-
-  giftMin:"Minimum amount is 10",
-  giftNotFound:"User not found",
-  giftInsufficient:"Not enough crystals",
-  giftSelf:"You can't send to yourself",
-
-  giftConfirm:"Confirm",
-  giftSuccessTitle:"Sent successfully",
-
-  receiptFrom:"From",
-  receiptTo:"To",
-  receiptAmount:"Amount",
-  receiptTime:"Time",
-
-  noDevices:"No other devices connected",
-  removeDevice:"Remove",
-
-  toastLoggedOut:"Logged out",
-  toastSaved:"Saved",
-  toastNotEnough:"Not enough balance",
-  toastBought:"Purchased!",
-  toastTaskDone:"Reward received!",
-  toastNotSubscribed:"You haven't joined the channel yet",
-
-  adminAddTask:"Add task",
-  adminGive:"Give currency to user",
-  adminLookup:"Look up user",
-
-  taskTitle:"Task title",
-  channelUser:"Channel username (without @)",
-  reward:"Reward (crystals)",
-
-  taskType:"Type",
-  typeChannel:"Mandatory channel subscription",
-  typeAd:"Advertisement / other task",
-
-  send:"Send",
-  lookup:"Look up",
-
-  userNotFound:"User not found"
-},
-
-ru:{
-  chooseLang:"Выберите язык",
-
-  loading:"Загрузка галактики...",
-  energy:"Энергия",
-
-  navTap:"Тап",
-  navShop:"Магазин",
-  navTasks:"Задания",
-  navSettings:"Настройки",
-
-  shopTitle:"Магазин",
-  tapPower:"Сила тапа",
-  maxEnergy:"Макс. энергия",
-  energyRegen:"Восст. энергии",
-
-  tapPowerDesc:"Монет за один тап",
-  maxEnergyDesc:"Максимальный запас энергии",
-  energyRegenDesc:"Энергии в секунду",
-
-  level:"Уровень",
-  current:"текущий",
-
-  buyCoin:"Монеты",
-  buyCrystal:"Кристаллы",
-
-  refillEnergy:"Восполнить энергию",
-  refillDesc:"Мгновенно восстановить всю энергию",
-
-  tasksTitle:"Задания",
-
-  refTitle:"👥 Реферал",
-  refDesc:"Приглашай друзей: тебе 100💎, другу 50💎",
-
-  copyLink:"Копировать ссылку",
-  linkCopied:"Ссылка скопирована!",
-
-  invited:"Приглашено",
-
-  join:"Подписаться",
-  check:"Проверить",
-  done:"Готово ✓",
-
-  settingsTitle:"Настройки",
-  language:"Язык",
-  devices:"Подключённые устройства",
-  sendGift:"Отправить кристаллы",
-  adminPanel:"Админ-панель",
-  logout:"Выйти",
-
-  giftUser:"Юзернейм получателя",
-  giftAmount:"Сумма (мин. 10)",
-
-  giftMin:"Минимальная сумма — 10",
-  giftNotFound:"Пользователь не найден",
-  giftInsufficient:"Недостаточно кристаллов",
-  giftSelf:"Нельзя отправить самому себе",
-
-  giftConfirm:"Подтвердить",
-  giftSuccessTitle:"Успешно отправлено",
-
-  receiptFrom:"От",
-  receiptTo:"Кому",
-  receiptAmount:"Сумма",
-  receiptTime:"Время",
-
-  noDevices:"Другие устройства не подключены",
-  removeDevice:"Удалить",
-
-  toastLoggedOut:"Вы вышли",
-  toastSaved:"Сохранено",
-  toastNotEnough:"Недостаточно баланса",
-  toastBought:"Куплено!",
-  toastTaskDone:"Награда получена!",
-  toastNotSubscribed:"Вы ещё не подписались на канал",
-
-  adminAddTask:"Добавить задание",
-  adminGive:"Начислить пользователю",
-  adminLookup:"Найти пользователя",
-
-  taskTitle:"Название задания",
-  channelUser:"Юзернейм канала (без @)",
-  reward:"Награда (кристаллы)",
-
-  taskType:"Тип",
-  typeChannel:"Обязательная подписка на канал",
-  typeAd:"Реклама / другое задание",
-
-  send:"Отправить",
-  lookup:"Найти",
-
-  userNotFound:"Пользователь не найден"
-},
-
-uz:{
-  chooseLang:"Tilni tanlang",
-
-  loading:"Galaktika yuklanmoqda...",
-  energy:"Energiya",
-
-  navTap:"Bosish",
-  navShop:"Do'kon",
-  navTasks:"Vazifalar",
-  navSettings:"Parametr",
-
-  shopTitle:"Do'kon",
-  tapPower:"Bosish kuchi",
-  maxEnergy:"Maks. energiya",
-  energyRegen:"Energiya tiklash",
-
-  tapPowerDesc:"Har bosishda olinadigan coin",
-  maxEnergyDesc:"Maksimal energiya sig'imi",
-  energyRegenDesc:"Sekundiga tiklanadigan energiya",
-
-  level:"Daraja",
-  current:"joriy",
-
-  buyCoin:"Coin",
-  buyCrystal:"Kristal",
-
-  refillEnergy:"Energiyani to'ldirish",
-  refillDesc:"Energiyani zumda to'liq tiklaydi",
-
-  tasksTitle:"Vazifalar",
-
-  refTitle:"👥 Referral",
-  refDesc:"Do'stlaringizni taklif qiling: sizga 100💎, do'stingizga 50💎",
-
-  copyLink:"Havolani nusxalash",
-  linkCopied:"Havola nusxalandi!",
-
-  invited:"Taklif qilingan",
-
-  join:"Obuna bo'lish",
-  check:"Tekshirish",
-  done:"Bajarildi ✓",
-
-  settingsTitle:"Parametr",
-  language:"Til",
-  devices:"Ulangan qurilmalar",
-  sendGift:"Kristal yuborish",
-  adminPanel:"Admin panel",
-  logout:"Chiqish",
-
-  giftUser:"Qabul qiluvchi foydalanuvchi nomi",
-  giftAmount:"Miqdor (min 10)",
-
-  giftMin:"Minimal miqdor 10",
-  giftNotFound:"Foydalanuvchi topilmadi",
-  giftInsufficient:"Kristal yetarli emas",
-  giftSelf:"O'zingizga yubora olmaysiz",
-
-  giftConfirm:"Tasdiqlash",
-  giftSuccessTitle:"Muvaffaqiyatli yuborildi",
-
-  receiptFrom:"Kimdan",
-  receiptTo:"Kimga",
-  receiptAmount:"Miqdor",
-  receiptTime:"Vaqt",
-
-  noDevices:"Boshqa qurilmalar ulanmagan",
-  removeDevice:"O'chirish",
-
-  toastLoggedOut:"Chiqdingiz",
-  toastSaved:"Saqlandi",
-  toastNotEnough:"Balans yetarli emas",
-  toastBought:"Xarid qilindi!",
-  toastTaskDone:"Mukofot olindi!",
-  toastNotSubscribed:"Siz hali kanalga obuna bo'lmadingiz",
-
-  adminAddTask:"Vazifa qo'shish",
-  adminGive:"Userga hisoblash",
-  adminLookup:"Userni qidirish",
-
-  taskTitle:"Vazifa nomi",
-  channelUser:"Kanal username (@ siz)",
-  reward:"Mukofot (kristal)",
-
-  taskType:"Turi",
-  typeChannel:"Majburiy kanal obunasi",
-  typeAd:"Reklama / boshqa vazifa",
-
-  send:"Yuborish",
-  lookup:"Qidirish",
-
-  userNotFound:"Foydalanuvchi topilmadi"
-}
-
-};
-
-let currentLang = localStorage.getItem('gc_lang') || null;
-
-function t(key){
-  return (LANG[currentLang || 'en'][key]) || key;
+/* =========================================================
+   FIREBASE INIT
+   ========================================================= */
+
+let db = null;
+let firebaseReady = false;
+
+try {
+  if (
+    typeof firebase !== "undefined" &&
+    firebaseConfig.apiKey !== "YOUR_API_KEY"
+  ) {
+    firebase.initializeApp(firebaseConfig);
+
+    db = firebase.firestore();
+
+    firebaseReady = true;
+  }
+} catch (error) {
+  console.error("Firebase error:", error);
 }
 
 
-/* ---------- 3. TELEGRAM ---------- */
+/* =========================================================
+   CONSTANTS
+   ========================================================= */
 
-const tg = window.Telegram ? window.Telegram.WebApp : null;
+const STORAGE_KEY = "galaxy_coin_account";
+const LANG_KEY = "galaxy_coin_language";
 
-if(tg){
-  tg.ready();
-  tg.expand();
-}
+const MAX_ENERGY = 500;
+const ENERGY_REGEN_MS = 3000;
 
-const telegramUser =
-  tg &&
-  tg.initDataUnsafe &&
-  tg.initDataUnsafe.user
-    ? tg.initDataUnsafe.user
-    : null;
+const TAP_REWARD = 1;
 
-const telegramId =
-  telegramUser
-    ? String(telegramUser.id)
-    : null;
-
-const startParam =
-  tg &&
-  tg.initDataUnsafe
-    ? (tg.initDataUnsafe.start_param || null)
-    : null;
+const ADMIN_USERNAMES = [
+  "admin",
+  "ff_coder"
+];
 
 
-/* ---------- 4. GAME CONFIG ---------- */
+/* =========================================================
+   STATE
+   ========================================================= */
 
-const PRICING = {
-  tap:   { base: 1, step: 1 },
-  energy:{ base: 1, step: 500 },
-  regen: { base: 1, step: 1 }
+const state = {
+
+  language:
+    localStorage.getItem(LANG_KEY) || null,
+
+  screen: "lang",
+
+  authTab: "login",
+
+  user: null,
+
+  coins: 0,
+
+  crystals: 0,
+
+  energy: MAX_ENERGY,
+
+  maxEnergy: MAX_ENERGY,
+
+  energyTimer: null,
+
+  taps: 0,
+
+  referralCount: 0,
+
+  tasks: [],
+
+  completedTasks: [],
+
+  devices: [],
+
+  shop: [],
+
+  isAdmin: false,
+
+  loading: false
 };
 
-const CRYSTAL_RATIO = 500;
+
+/* =========================================================
+   TRANSLATIONS
+   ========================================================= */
+
+const translations = {
+
+  uz: {
+
+    login: "Kirish",
+    register: "Ro‘yxatdan o‘tish",
+
+    username: "Username",
+    code8: "8 xonali kod",
+
+    yourName: "Ismingiz",
+
+    createCode: "8 xonali kod yarating",
+
+    confirmCode: "Kodni tasdiqlang",
+
+    loginBtn: "Kirish",
+    registerBtn: "Ro‘yxatdan o‘tish",
+
+    energy: "Energiya",
+
+    tap: "Bosish",
+    shop: "Do‘kon",
+    tasks: "Vazifalar",
+    settings: "Sozlamalar",
+
+    referral: "Takliflar",
+    referralDesc:
+      "Do‘stlaringizni taklif qiling va Crystal oling",
+
+    copyLink: "Havolani nusxalash",
+
+    invited: "Taklif qilingan",
+
+    language: "Til",
+    connectedDevices: "Ulangan qurilmalar",
+
+    sendCrystals: "Crystal yuborish",
+
+    adminPanel: "Admin panel",
+
+    logout: "Chiqish",
+
+    connected: "Ulangan",
+
+    recipientUsername: "Qabul qiluvchi username",
+    amountMin: "Miqdor (min 10)",
+
+    confirm: "Tasdiqlash",
+
+    close: "Yopish",
+
+    loading: "Galaxy yuklanmoqda...",
+
+    chooseLanguage:
+      "Tilni tanlang / Выберите язык / Choose your language",
+
+    minUsername:
+      "Kamida 5 ta belgi, harf bilan boshlanishi kerak",
+
+    wrongLogin:
+      "Username yoki kod noto‘g‘ri.",
+
+    usernameExists:
+      "Bu username allaqachon mavjud.",
+
+    codeMismatch:
+      "Kodlar bir xil emas.",
+
+    invalidUsername:
+      "Username noto‘g‘ri.",
+
+    invalidCode:
+      "Kod aynan 8 xonali bo‘lishi kerak.",
+
+    registered:
+      "Ro‘yxatdan o‘tish muvaffaqiyatli.",
+
+    copied:
+      "Havola nusxalandi.",
+
+    notEnoughCoins:
+      "Coin yetarli emas.",
+
+    notEnoughCrystals:
+      "Crystal yetarli emas.",
+
+    sent:
+      "Crystal yuborildi.",
+
+    minCrystal:
+      "Minimum 10 Crystal.",
+
+    userNotFound:
+      "Foydalanuvchi topilmadi.",
+
+    taskCompleted:
+      "Vazifa bajarildi.",
+
+    taskAlready:
+      "Vazifa allaqachon bajarilgan.",
+
+    added:
+      "Qo‘shildi.",
+
+    deleted:
+      "O‘chirildi."
+  },
 
 
-/* ---------- 5. STATE ---------- */
+  en: {
 
-let user = null;
-let userRef = null;
+    login: "Login",
+    register: "Register",
 
-let energyTimer = null;
-let syncTimer = null;
+    username: "Username",
+    code8: "8-digit code",
 
-let pendingTaps = 0;
-let tasksCache = [];
+    yourName: "Your name",
+
+    createCode: "Create 8-digit code",
+
+    confirmCode: "Confirm code",
+
+    loginBtn: "Login",
+    registerBtn: "Register",
+
+    energy: "Energy",
+
+    tap: "Tap",
+    shop: "Shop",
+    tasks: "Tasks",
+    settings: "Settings",
+
+    referral: "Referral",
+    referralDesc:
+      "Invite friends and earn crystals",
+
+    copyLink: "Copy link",
+
+    invited: "Invited",
+
+    language: "Language",
+    connectedDevices: "Connected devices",
+
+    sendCrystals: "Send crystals",
+
+    adminPanel: "Admin panel",
+
+    logout: "Log out",
+
+    connected: "Connected",
+
+    recipientUsername: "Recipient username",
+    amountMin: "Amount (min 10)",
+
+    confirm: "Confirm",
+
+    close: "Close",
+
+    loading: "Loading galaxy...",
+
+    chooseLanguage:
+      "Choose your language / Выберите язык / Tilni tanlang",
+
+    minUsername:
+      "Min 5 chars, must start with a letter",
+
+    wrongLogin:
+      "Username or code is incorrect.",
+
+    usernameExists:
+      "This username already exists.",
+
+    codeMismatch:
+      "Codes do not match.",
+
+    invalidUsername:
+      "Invalid username.",
+
+    invalidCode:
+      "Code must contain exactly 8 digits.",
+
+    registered:
+      "Registration successful.",
+
+    copied:
+      "Link copied.",
+
+    notEnoughCoins:
+      "Not enough coins.",
+
+    notEnoughCrystals:
+      "Not enough crystals.",
+
+    sent:
+      "Crystals sent.",
+
+    minCrystal:
+      "Minimum 10 crystals.",
+
+    userNotFound:
+      "User not found.",
+
+    taskCompleted:
+      "Task completed.",
+
+    taskAlready:
+      "Task already completed.",
+
+    added:
+      "Added.",
+
+    deleted:
+      "Deleted."
+  },
 
 
-/* ---------- 6. UTIL ---------- */
+  ru: {
 
-function $(id){
+    login: "Войти",
+    register: "Регистрация",
+
+    username: "Имя пользователя",
+    code8: "8-значный код",
+
+    yourName: "Ваше имя",
+
+    createCode: "Создайте 8-значный код",
+
+    confirmCode: "Подтвердите код",
+
+    loginBtn: "Войти",
+    registerBtn: "Регистрация",
+
+    energy: "Энергия",
+
+    tap: "Тап",
+    shop: "Магазин",
+    tasks: "Задания",
+    settings: "Настройки",
+
+    referral: "Рефералы",
+    referralDesc:
+      "Приглашайте друзей и получайте Crystal",
+
+    copyLink: "Копировать ссылку",
+
+    invited: "Приглашено",
+
+    language: "Язык",
+    connectedDevices: "Подключённые устройства",
+
+    sendCrystals: "Отправить Crystal",
+
+    adminPanel: "Админ-панель",
+
+    logout: "Выйти",
+
+    connected: "Подключено",
+
+    recipientUsername: "Username получателя",
+    amountMin: "Количество (мин. 10)",
+
+    confirm: "Подтвердить",
+
+    close: "Закрыть",
+
+    loading: "Загрузка Galaxy...",
+
+    chooseLanguage:
+      "Выберите язык / Choose your language / Tilni tanlang",
+
+    minUsername:
+      "Минимум 5 символов, должно начинаться с буквы",
+
+    wrongLogin:
+      "Username или код неверный.",
+
+    usernameExists:
+      "Этот username уже занят.",
+
+    codeMismatch:
+      "Коды не совпадают.",
+
+    invalidUsername:
+      "Неверный username.",
+
+    invalidCode:
+      "Код должен содержать 8 цифр.",
+
+    registered:
+      "Регистрация успешна.",
+
+    copied:
+      "Ссылка скопирована.",
+
+    notEnoughCoins:
+      "Недостаточно Coin.",
+
+    notEnoughCrystals:
+      "Недостаточно Crystal.",
+
+    sent:
+      "Crystal отправлен.",
+
+    minCrystal:
+      "Минимум 10 Crystal.",
+
+    userNotFound:
+      "Пользователь не найден.",
+
+    taskCompleted:
+      "Задание выполнено.",
+
+    taskAlready:
+      "Задание уже выполнено.",
+
+    added:
+      "Добавлено.",
+
+    deleted:
+      "Удалено."
+  }
+
+};
+
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function $(id) {
   return document.getElementById(id);
 }
 
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>{
-    s.classList.remove('active');
-  });
 
-  const el = $(id);
+function t(key) {
 
-  if(el){
-    el.classList.add('active');
-  }
+  const lang =
+    translations[state.language] ||
+    translations.uz;
+
+  return lang[key] || key;
 }
 
-function toast(msg){
-  const el = $('toast');
 
-  if(!el) return;
+function normalizeUsername(username) {
 
-  el.textContent = msg;
-  el.classList.add('show');
-
-  setTimeout(()=>{
-    el.classList.remove('show');
-  },2200);
+  return String(username || "")
+    .trim()
+    .replace(/^@/, "")
+    .toLowerCase();
 }
 
-function fmt(n){
-  n = Math.floor(Number(n) || 0);
-  return n.toLocaleString('en-US');
+
+function escapeHTML(value) {
+
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-function genStars(){
-  const c = $('stars');
 
-  if(!c) return;
+function randomId() {
 
-  let html='';
-
-  for(let i=0;i<60;i++){
-    const x=Math.random()*100;
-    const y=Math.random()*100;
-    const d=Math.random()*3;
-
-    html += `
-      <span
-        style="
-          left:${x}%;
-          top:${y}%;
-          animation-delay:${d}s;
-        "
-      ></span>`;
-  }
-
-  c.innerHTML = html;
-}
-
-genStars();
-
-
-
-function coinCostForLevel(kind, level){
-
-  level = Math.max(1, Number(level) || 1);
-
-  return Math.max(
-    1,
-    PRICING[kind]
-      ? PRICING[kind].base +
-        (level - 1) * PRICING[kind].step
-      : 1
+  return (
+    Date.now().toString(36) +
+    Math.random()
+      .toString(36)
+      .substring(2, 8)
   );
-
 }
 
 
-function crystalCostForLevel(kind, level){
+function showToast(message) {
 
-  level = Math.max(1, Number(level) || 1);
+  const toast = $("toast");
 
-  const crystalPrices = {
-    1: 1,
-    2: 5,
-    3: 10,
-    4: 20,
-    5: 30,
-    6: 40
-  };
+  if (!toast) return;
 
-  if(crystalPrices[level] !== undefined){
-    return crystalPrices[level];
-  }
+  toast.textContent = message;
 
-  return 40 + (level - 6) * 10;
+  toast.classList.add("show");
 
-     }
+  clearTimeout(showToast.timer);
 
-/* ---------- 8. LANGUAGE ---------- */
-
-/* Til tanlash — HTML qachon yuklanganidan qat'i nazar ishlaydi */
-document.addEventListener('click', async (e) => {
-
-  const langBtn = e.target.closest('#screen-lang .lang-btn');
-
-  if(langBtn){
-
-    const lang = langBtn.dataset.lang;
-
-    if(!lang || !LANG[lang]){
-      console.error('Noto‘g‘ri til:', lang);
-      return;
-    }
-
-    currentLang = lang;
-
-    localStorage.setItem(
-      'gc_lang',
-      currentLang
-    );
-
-    applyTranslations();
-
-    console.log('Til tanlandi:', currentLang);
-
-    await enterWithoutLogin();
-
-    return;
-  }
-
-
-  /* Settings ichidagi til almashtirish */
-  const switchBtn = e.target.closest('[data-lang-switch]');
-
-  if(switchBtn){
-
-    const lang = switchBtn.dataset.langSwitch;
-
-    if(!lang || !LANG[lang]){
-      console.error('Noto‘g‘ri til:', lang);
-      return;
-    }
-
-    currentLang = lang;
-
-    localStorage.setItem(
-      'gc_lang',
-      currentLang
-    );
-
-    applyTranslations();
-
-    closeModal('modal-lang');
-
-    if(user){
-      renderMain();
-      renderShop();
-      renderTasks();
-    }
-
-    toast(t('toastSaved'));
-
-  }
-
-});
-
-
-function applyTranslations(){
-
-  const setText = (id,key)=>{
-    const el=$(id);
-    if(el) el.textContent=t(key);
-  };
-
-
-  setText('loading-text','loading');
-
-  setText('energy-label-text','energy');
-
-  setText('nav-tap-label','navTap');
-  setText('nav-shop-label','navShop');
-  setText('nav-tasks-label','navTasks');
-  setText('nav-settings-label','navSettings');
-
-  setText('shop-title','shopTitle');
-  setText('tasks-title','tasksTitle');
-
-  setText('ref-title','refTitle');
-  setText('ref-desc','refDesc');
-  setText('ref-copy','copyLink');
-
-  setText('settings-title','settingsTitle');
-
-  setText('lbl-set-lang','language');
-  setText('lbl-set-devices','devices');
-  setText('lbl-set-gift','sendGift');
-
-  const adminLabel = $('lbl-set-admin');
-
-  if(adminLabel){
-    adminLabel.innerHTML =
-      t('adminPanel') +
-      ' <span class="admin-badge">ADMIN</span>';
-  }
-
-  setText('lbl-set-logout','logout');
-
-  setText('modal-devices-title','devices');
-  setText('modal-gift-title','sendGift');
-
-  setText('gift-lbl-user','giftUser');
-  setText('gift-lbl-amount','giftAmount');
-
-  setText('gift-confirm-btn','giftConfirm');
-  setText('modal-lang-title','language');
-
-  document.documentElement.lang =
-    currentLang || 'en';
+  showToast.timer = setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2200);
 }
+
 
 /* =========================================================
-   9. AUTO USER SYSTEM
+   SCREEN MANAGEMENT
    ========================================================= */
 
-/*
- * Telegram username bo'lmasa:
- * tg_123456789 kabi username yaratiladi.
- */
+function showScreen(name) {
 
-function getTelegramUsername(){
+  document
+    .querySelectorAll(".screen")
+    .forEach(screen => {
+      screen.classList.remove("active");
+    });
 
-  if(
-    telegramUser &&
-    telegramUser.username
-  ){
-    return telegramUser.username
-      .toLowerCase()
-      .replace(/[^a-z0-9_]/g,'');
-  }
+  const target =
+    $("screen-" + name);
 
-  if(telegramId){
-    return 'tg_' + telegramId;
-  }
+  if (!target) return;
 
-  return null;
+  target.classList.add("active");
+
+  state.screen = name;
+
+  window.scrollTo(0, 0);
 }
 
 
-function getTelegramName(){
+/* =========================================================
+   STARS
+   ========================================================= */
 
-  if(!telegramUser){
-    return 'Galaxy User';
+function createStars() {
+
+  const container = $("stars");
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  const count = 90;
+
+  for (let i = 0; i < count; i++) {
+
+    const star =
+      document.createElement("span");
+
+    star.style.left =
+      Math.random() * 100 + "%";
+
+    star.style.top =
+      Math.random() * 100 + "%";
+
+    const size =
+      Math.random() > .85 ? 3 : 2;
+
+    star.style.width =
+      size + "px";
+
+    star.style.height =
+      size + "px";
+
+    star.style.animationDelay =
+      Math.random() * 3 + "s";
+
+    star.style.animationDuration =
+      2 + Math.random() * 4 + "s";
+
+    container.appendChild(star);
+  }
+}
+
+
+/* =========================================================
+   LANGUAGE
+   ========================================================= */
+
+function selectLanguage(lang) {
+
+  if (!translations[lang]) {
+    lang = "uz";
   }
 
-  const first =
-    telegramUser.first_name || '';
+  state.language = lang;
 
-  const last =
-    telegramUser.last_name || '';
+  localStorage.setItem(
+    LANG_KEY,
+    lang
+  );
 
-  const full =
-    `${first} ${last}`.trim();
+  updateLanguageUI();
 
-  return full || 'Galaxy User';
-}
+  if (state.user) {
 
+    closeModal("modal-lang");
 
-function userRefFor(username){
-  return db.collection('users').doc(username);
-}
+    showScreen("main");
 
-
-/*
- * Telegram user mavjud bo'lsa:
- *
- * 1. Firebase'dan user qidiradi
- * 2. Bor bo'lsa yuklaydi
- * 3. Yo'q bo'lsa avtomatik yaratadi
- * 4. Login/Register talab qilmaydi
- */
-
-async function enterWithoutLogin(){
-
-  showScreen('screen-loading');
-
-  if(!telegramId){
-
-    console.warn(
-      'Telegram user ID topilmadi.'
-    );
-
-    /*
-     * Telegram Web App tashqarisida test qilinsa,
-     * vaqtinchalik guest user.
-     */
-
-    createGuestUser();
+    updateMainUI();
 
     return;
   }
 
-  try{
-
-    const username =
-      getTelegramUsername();
-
-    const ref =
-      userRefFor(username);
-
-    const snap =
-      await ref.get();
+  showScreen("auth");
+}
 
 
-    /* ---------- EXISTING USER ---------- */
+function updateLanguageUI() {
 
-    if(snap.exists){
+  const lang = state.language || "uz";
 
-      user = snap.data();
-      userRef = ref;
+  document.documentElement.lang = lang;
 
-      /*
-       * Eski userda kerakli maydonlar bo'lmasa
-       * default qiymat beramiz.
-       */
+  const ids = {
 
-      user.name =
-        user.name || getTelegramName();
+    "tab-login": "login",
+    "tab-register": "register",
 
-      user.username =
-        user.username || username;
+    "lbl-login-username": "username",
+    "lbl-login-code": "code8",
 
-      user.coins =
-        Number(user.coins || 0);
+    "lbl-reg-name": "yourName",
+    "lbl-reg-username": "username",
+    "lbl-reg-code": "createCode",
+    "lbl-reg-code2": "confirmCode",
 
-      user.crystals =
-        Number(user.crystals || 0);
+    "btn-login": "loginBtn",
+    "btn-register": "registerBtn",
 
-      user.tapLevel =
-        Number(user.tapLevel || 1);
+    "energy-label-text": "energy",
 
-      user.energyLevel =
-        Number(user.energyLevel || 1);
+    "nav-tap-label": "tap",
+    "nav-shop-label": "shop",
+    "nav-tasks-label": "tasks",
+    "nav-settings-label": "settings",
 
-      user.regenLevel =
-        Number(user.regenLevel || 1);
+    "shop-title": "shop",
+    "tasks-title": "tasks",
+    "settings-title": "settings",
 
-      user.maxEnergy =
-        Number(user.maxEnergy || 500);
+    "ref-title": "referral",
+    "ref-desc": "referralDesc",
 
-      user.energy =
-        Number(user.energy ?? user.maxEnergy);
+    "ref-copy": "copyLink",
 
-      user.regen =
-        Number(user.regen || 1);
+    "lbl-set-lang": "language",
+    "lbl-set-devices": "connectedDevices",
+    "lbl-set-gift": "sendCrystals",
+    "lbl-set-admin": "adminPanel",
+    "lbl-set-logout": "logout",
 
-      user.refCount =
-        Number(user.refCount || 10000);
+    "modal-devices-title": "connectedDevices",
+    "modal-gift-title": "sendCrystals",
+    "modal-lang-title": "language",
 
-      user.completedTasks =
-        user.completedTasks || [];
+    "gift-lbl-user": "recipientUsername",
+    "gift-lbl-amount": "amountMin",
 
-      /*
-       * Telegram device ma'lumotini yangilash
-       */
+    "gift-confirm-btn": "confirm",
 
-      let devices =
-        user.devices || [];
+    "loading-text": "loading"
+  };
 
-      const deviceIndex =
-        devices.findIndex(
-          d => String(d.telegramId) === String(telegramId)
-        );
 
-      if(deviceIndex === -1){
+  Object.entries(ids).forEach(
+    ([id, key]) => {
 
-        devices.push({
-          telegramId,
-          tgName:getTelegramName(),
-          lastSeen:Date.now()
-        });
+      const el = $(id);
 
-      }else{
-
-        devices[deviceIndex].lastSeen =
-          Date.now();
-
+      if (el) {
+        el.textContent = t(key);
       }
 
-      user.devices = devices;
+    }
+  );
 
-      await ref.update({
 
-        name:user.name,
-        telegramId:telegramId,
-        devices:devices,
-        lastSeen:Date.now(),
-        lang:currentLang
+  const hint =
+    $("hint-username");
 
-      });
+  if (hint) {
+    hint.textContent =
+      t("minUsername");
+  }
 
-      setTimeout(
-        ()=>enterGame(),
-        500
+
+  const langSub =
+    $("lang-sub");
+
+  if (langSub) {
+    langSub.textContent =
+      t("chooseLanguage");
+  }
+
+
+  const current =
+    $("cur-lang-val");
+
+  if (current) {
+
+    const names = {
+      uz: "O'zbek",
+      en: "English",
+      ru: "Русский"
+    };
+
+    current.innerHTML =
+      `${names[lang]} <span class="chevron">›</span>`;
+  }
+
+
+  updateReferralText();
+}
+
+
+/* =========================================================
+   AUTH TABS
+   ========================================================= */
+
+function setAuthTab(tab) {
+
+  state.authTab = tab;
+
+  document
+    .querySelectorAll(".tab")
+    .forEach(el => {
+
+      el.classList.toggle(
+        "active",
+        el.dataset.tab === tab
       );
 
-      return;
+    });
+
+
+  document
+    .querySelectorAll(".auth-form")
+    .forEach(form => {
+
+      form.classList.toggle(
+        "active",
+        form.id === "form-" + tab
+      );
+
+    });
+
+
+  clearAuthErrors();
+}
+
+
+function clearAuthErrors() {
+
+  const loginError =
+    $("err-login");
+
+  const registerError =
+    $("err-register");
+
+  if (loginError) {
+    loginError.textContent = "";
+  }
+
+  if (registerError) {
+    registerError.textContent = "";
+  }
+}
+
+
+/* =========================================================
+   LOCAL STORAGE ACCOUNT
+   ========================================================= */
+
+function saveLocalAccount() {
+
+  if (!state.user) return;
+
+  const data = {
+
+    user: state.user,
+
+    coins: state.coins,
+
+    crystals: state.crystals,
+
+    energy: state.energy,
+
+    maxEnergy: state.maxEnergy,
+
+    taps: state.taps,
+
+    referralCount: state.referralCount,
+
+    completedTasks:
+      state.completedTasks,
+
+    devices:
+      state.devices,
+
+    savedAt: Date.now()
+  };
+
+
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(data)
+  );
+}
+
+
+function loadLocalAccount() {
+
+  try {
+
+    const raw =
+      localStorage.getItem(STORAGE_KEY);
+
+    if (!raw) return false;
+
+    const data =
+      JSON.parse(raw);
+
+    if (!data || !data.user) {
+      return false;
+    }
+
+    state.user =
+      data.user;
+
+    state.coins =
+      Number(data.coins || 0);
+
+    state.crystals =
+      Number(data.crystals || 0);
+
+    state.energy =
+      Number(
+        data.energy ??
+        MAX_ENERGY
+      );
+
+    state.maxEnergy =
+      Number(
+        data.maxEnergy ||
+        MAX_ENERGY
+      );
+
+    state.taps =
+      Number(data.taps || 0);
+
+    state.referralCount =
+      Number(
+        data.referralCount || 0
+      );
+
+    state.completedTasks =
+      Array.isArray(data.completedTasks)
+        ? data.completedTasks
+        : [];
+
+    state.devices =
+      Array.isArray(data.devices)
+        ? data.devices
+        : [];
+
+    state.isAdmin =
+      isAdminUser();
+
+    return true;
+
+  } catch (error) {
+
+    console.error(
+      "Local account error:",
+      error
+    );
+
+    return false;
+  }
+}
+
+
+/* =========================================================
+   FIREBASE USER
+   ========================================================= */
+
+async function findFirebaseUser(username) {
+
+  if (!firebaseReady || !db) {
+    return null;
+  }
+
+  try {
+
+    const snapshot =
+      await db
+        .collection("users")
+        .where(
+          "username",
+          "==",
+          normalizeUsername(username)
+        )
+        .limit(1)
+        .get();
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    const doc =
+      snapshot.docs[0];
+
+    return {
+      id: doc.id,
+      ...doc.data()
+    };
+
+  } catch (error) {
+
+    console.error(
+      "Find user:",
+      error
+    );
+
+    return null;
+  }
+}
+
+
+async function saveFirebaseUser() {
+
+  if (!firebaseReady || !db || !state.user) {
+    return;
+  }
+
+  try {
+
+    const id =
+      state.user.firebaseId ||
+      state.user.id;
+
+    if (!id) return;
+
+    await db
+      .collection("users")
+      .doc(id)
+      .set(
+        {
+          ...state.user,
+
+          coins: state.coins,
+
+          crystals: state.crystals,
+
+          energy: state.energy,
+
+          maxEnergy: state.maxEnergy,
+
+          taps: state.taps,
+
+          referralCount:
+            state.referralCount,
+
+          completedTasks:
+            state.completedTasks,
+
+          updatedAt:
+            firebase.firestore.FieldValue.serverTimestamp()
+        },
+        {
+          merge: true
+        }
+      );
+
+  } catch (error) {
+
+    console.error(
+      "Save Firebase:",
+      error
+    );
+  }
+}
+
+
+/* =========================================================
+   REGISTER
+   ========================================================= */
+
+async function registerUser(event) {
+
+  event.preventDefault();
+
+  const name =
+    $("reg-name").value.trim();
+
+  const username =
+    normalizeUsername(
+      $("reg-username").value
+    );
+
+  const code =
+    $("reg-code").value.trim();
+
+  const code2 =
+    $("reg-code2").value.trim();
+
+  const error =
+    $("err-register");
+
+  error.textContent = "";
+
+
+  if (name.length < 2) {
+
+    error.textContent =
+      "Ism kamida 2 ta belgidan iborat bo‘lsin.";
+
+    return;
+  }
+
+
+  if (!/^[a-zA-Z][a-zA-Z0-9_]{4,29}$/.test(username)) {
+
+    error.textContent =
+      t("invalidUsername");
+
+    return;
+  }
+
+
+  if (!/^\d{8}$/.test(code)) {
+
+    error.textContent =
+      t("invalidCode");
+
+    return;
+  }
+
+
+  if (code !== code2) {
+
+    error.textContent =
+      t("codeMismatch");
+
+    return;
+  }
+
+
+  const button =
+    $("btn-register");
+
+  button.disabled = true;
+
+
+  try {
+
+    /* Firebase ishlayotgan bo‘lsa */
+
+    if (firebaseReady) {
+
+      const existing =
+        await findFirebaseUser(username);
+
+      if (existing) {
+
+        error.textContent =
+          t("usernameExists");
+
+        return;
+      }
     }
 
 
-    /* ---------- NEW USER ---------- */
+    /* Telegram ma'lumotlari */
 
-    const newUser = {
+    let telegramUser = null;
 
-      name:getTelegramName(),
+    if (
+      tg &&
+      tg.initDataUnsafe &&
+      tg.initDataUnsafe.user
+    ) {
+      telegramUser =
+        tg.initDataUnsafe.user;
+    }
 
-      username:username,
 
-      telegramId:telegramId,
+    const user = {
 
-      coins:0,
+      id: randomId(),
 
-      crystals:0,
+      firebaseId: randomId(),
 
-      tapLevel:1,
+      name: name,
 
-      energyLevel:1,
+      username: username,
 
-      regenLevel:1,
+      code: code,
 
-      maxEnergy:500,
+      telegramId:
+        telegramUser?.id || null,
 
-      energy:500,
+      telegramUsername:
+        telegramUser?.username || null,
 
-      regen:1,
+      photoUrl:
+        telegramUser?.photo_url || null,
 
-      refCount:0,
-
-      referredBy:null,
-
-      isAdmin:false,
-
-      devices:[{
-
-        telegramId:telegramId,
-
-        tgName:getTelegramName(),
-
-        lastSeen:Date.now()
-
-      }],
-
-      completedTasks:[],
-
-      createdAt:Date.now(),
-
-      lastSeen:Date.now(),
-
-      lang:currentLang
-
+      createdAt:
+        Date.now()
     };
 
 
-    /* ---------- REFERRAL ---------- */
+    state.user = user;
 
-    if(startParam){
+    state.coins = 0;
 
-      const refUsername =
-        startParam
-          .toLowerCase()
-          .replace(/[^a-z0-9_]/g,'');
+    state.crystals = 0;
 
-      if(
-        refUsername &&
-        refUsername !== username
-      ){
+    state.energy = MAX_ENERGY;
 
-        try{
+    state.maxEnergy = MAX_ENERGY;
 
-          const refSnap =
-            await userRefFor(
-              refUsername
-            ).get();
+    state.taps = 0;
 
-          if(refSnap.exists){
+    state.referralCount = 0;
 
-            newUser.referredBy =
-              refUsername;
+    state.completedTasks = [];
 
-            /*
-             * Yangi userga 50 crystal
-             */
+    state.devices = [
 
-            newUser.crystals += 50;
+      {
+        id: randomId(),
+        name: "Current device",
+        connectedAt: Date.now()
+      }
 
-            /*
-             * Refererga 100 crystal
-             */
+    ];
 
-            await userRefFor(
-              refUsername
-            ).update({
+    state.isAdmin =
+      isAdminUser();
 
-              crystals:
-                firebase.firestore.FieldValue.increment(100),
 
-              refCount:
-                firebase.firestore.FieldValue.increment(1)
+    saveLocalAccount();
 
-            });
+    await saveFirebaseUser();
 
-          }
 
-        }catch(refErr){
+    showToast(t("registered"));
 
-          console.error(
-            'Referral error:',
-            refErr
-          );
+    startLoading();
 
+  } finally {
+
+    button.disabled = false;
+  }
+}
+
+
+/* =========================================================
+   LOGIN
+   ========================================================= */
+
+async function loginUser(event) {
+
+  event.preventDefault();
+
+  const username =
+    normalizeUsername(
+      $("login-username").value
+    );
+
+  const code =
+    $("login-code").value.trim();
+
+  const error =
+    $("err-login");
+
+  error.textContent = "";
+
+
+  if (
+    !/^[a-zA-Z][a-zA-Z0-9_]{4,29}$/.test(username)
+  ) {
+
+    error.textContent =
+      t("invalidUsername");
+
+    return;
+  }
+
+
+  if (!/^\d{8}$/.test(code)) {
+
+    error.textContent =
+      t("invalidCode");
+
+    return;
+  }
+
+
+  const button =
+    $("btn-login");
+
+  button.disabled = true;
+
+
+  try {
+
+    let account = null;
+
+
+    /* Firebase */
+
+    if (firebaseReady) {
+
+      account =
+        await findFirebaseUser(username);
+
+      if (account) {
+
+        if (
+          String(account.code) !==
+          String(code)
+        ) {
+
+          error.textContent =
+            t("wrongLogin");
+
+          return;
         }
 
       }
-
     }
 
 
-    /* ---------- SAVE USER ---------- */
+    /* Local account */
 
-    await ref.set(newUser);
+    if (!account) {
 
-    user = newUser;
-    userRef = ref;
+      const localRaw =
+        localStorage.getItem(
+          STORAGE_KEY
+        );
 
+      if (localRaw) {
 
-    /* ---------- ADMIN NOTIFICATION ---------- */
+        try {
 
-    notifyBotRegistration(
-      newUser
-    );
+          const local =
+            JSON.parse(localRaw);
 
+          if (
+            normalizeUsername(
+              local.user?.username
+            ) === username &&
+            String(local.user?.code) ===
+            String(code)
+          ) {
 
-    /* ---------- ENTER GAME ---------- */
+            account = {
 
-    setTimeout(
-      ()=>enterGame(),
-      500
-    );
+              ...local,
 
+              ...local.user,
 
-  }catch(err){
+              user: local.user
+            };
+          }
 
-    console.error(
-      'Auto entry error:',
-      err
-    );
-
-    /*
-     * Firebase xatolik qilsa ham
-     * userni guest sifatida ochamiz.
-     */
-
-    createGuestUser();
-
-  }
-
-}
-
-
-/* ---------- GUEST USER ---------- */
-
-function createGuestUser(){
-
-  user = {
-
-    name:
-      getTelegramName(),
-
-    username:
-      getTelegramUsername() ||
-      'guest',
-
-    telegramId:
-      telegramId || null,
-
-    coins:0,
-
-    crystals:0,
-
-    tapLevel:1,
-
-    energyLevel:1,
-
-    regenLevel:1,
-
-    maxEnergy:500,
-
-    energy:500,
-
-    regen:1,
-
-    refCount:0,
-
-    referredBy:null,
-
-    isAdmin:false,
-
-    devices:[],
-
-    completedTasks:[]
-
-  };
-
-  userRef = null;
-
-  setTimeout(
-    ()=>enterGame(),
-    400
-  );
-
-}
-
-
-/* ---------- ON LOAD ---------- */
-
-window.addEventListener(
-  'load',
-  ()=>{
-
-    /*
-     * Til oldin tanlangan bo'lsa:
-     * to'g'ridan-to'g'ri userni ochamiz.
-     */
-
-    if(currentLang){
-
-      applyTranslations();
-
-      enterWithoutLogin();
-
-    }else{
-
-      /*
-       * Birinchi marta kirsa til tanlaydi.
-       */
-
-      showScreen(
-        'screen-lang'
-      );
-
+        } catch (e) {}
+      }
     }
 
-  }
-);
+
+    if (!account) {
+
+      error.textContent =
+        t("wrongLogin");
+
+      return;
+    }
 
 
-/* =========================================================
-   10. ENTER GAME
-   ========================================================= */
+    /* Restore */
 
-function enterGame(){
+    if (account.user) {
 
-  applyTranslations();
+      state.user =
+        account.user;
 
-  showScreen(
-    'screen-main'
-  );
+      state.coins =
+        Number(account.coins || 0);
 
-  startEnergyLoop();
+      state.crystals =
+        Number(account.crystals || 0);
 
-  loadTasks();
+      state.energy =
+        Number(
+          account.energy ??
+          MAX_ENERGY
+        );
 
-  renderMain();
+      state.maxEnergy =
+        Number(
+          account.maxEnergy ||
+          MAX_ENERGY
+        );
 
-  renderShop();
+      state.taps =
+        Number(account.taps || 0);
 
-  renderTasks();
+      state.referralCount =
+        Number(
+          account.referralCount || 0
+        );
 
-
-  /*
-   * Admin:
-   * Firestore'dagi mavjud user.isAdmin true bo'lsa
-   * admin panel ko'rinadi.
-   */
-
-  const adminRow =
-    $('row-admin');
-
-  if(adminRow){
-
-    adminRow.style.display =
-      user.isAdmin
-        ? 'flex'
-        : 'none';
-
-  }
-
-
-  if(syncTimer){
-    clearInterval(syncTimer);
-  }
-
-  syncTimer =
-    setInterval(
-      flushSync,
-      2500
-    );
-
-}
-
-
-/* =========================================================
-   11. MAIN
-   ========================================================= */
-
-function renderMain(){
-
-  if(!user) return;
-
-  const nameEl =
-    $('main-name');
-
-  const handleEl =
-    $('main-handle');
-
-  const coinsEl =
-    $('main-coins');
-
-  const crystalsEl =
-    $('main-crystals');
-
-  const energyCount =
-    $('energy-count');
-
-  const energyFill =
-    $('energy-fill');
-
-
-  if(nameEl){
-    nameEl.textContent =
-      user.name || 'Galaxy User';
-  }
-
-  if(handleEl){
-
-    handleEl.textContent =
-      '@' +
-      (
-        user.username ||
-        getTelegramUsername() ||
-        'user'
-      );
-
-  }
-
-  if(coinsEl){
-    coinsEl.textContent =
-      fmt(user.coins);
-  }
-
-  if(crystalsEl){
-    crystalsEl.textContent =
-      fmt(user.crystals);
-  }
-
-  if(energyCount){
-
-    energyCount.textContent =
-      `${Math.floor(user.energy)}/${user.maxEnergy}`;
-
-  }
-
-  if(energyFill){
-
-    energyFill.style.width =
-      Math.max(
-        0,
-        Math.min(
-          100,
-          user.energy /
-          user.maxEnergy *
-          100
+      state.completedTasks =
+        Array.isArray(
+          account.completedTasks
         )
-      ) + '%';
+          ? account.completedTasks
+          : [];
 
+      state.devices =
+        Array.isArray(account.devices)
+          ? account.devices
+          : [];
+    }
+
+
+    state.isAdmin =
+      isAdminUser();
+
+
+    saveLocalAccount();
+
+    startLoading();
+
+  } finally {
+
+    button.disabled = false;
   }
-
 }
 
 
 /* =========================================================
-   12. TAP
+   LOADING
    ========================================================= */
 
-const planetBtn =
-  $('planet-btn');
+function startLoading() {
 
-if(planetBtn){
+  state.loading = true;
 
-  planetBtn.addEventListener(
-    'click',
-    (e)=>{
+  showScreen("loading");
 
-      if(!user){
-        return;
-      }
+  const loadingText =
+    $("loading-text");
 
-      if(user.energy < 1){
+  if (loadingText) {
+    loadingText.textContent =
+      t("loading");
+  }
 
-        toast(
-          t('toastNotEnough')
-        );
 
-        return;
-      }
+  setTimeout(async () => {
 
-      const tapPower =
-        user.tapLevel;
+    await loadTasks();
 
-      user.coins +=
-        tapPower;
+    await loadShop();
 
-      user.energy =
-        Math.max(
-          0,
-          user.energy - 1
-        );
+    updateMainUI();
 
-      pendingTaps++;
+    updateReferralUI();
 
-      renderMain();
+    updateDevicesUI();
 
-      spawnFloatText(
-        '+' + tapPower,
-        e
-      );
+    updateAdminUI();
 
-      if(
-        tg &&
-        tg.HapticFeedback
-      ){
+    startEnergyRegeneration();
 
-        tg.HapticFeedback
-          .impactOccurred('light');
+    state.loading = false;
 
-      }
+    showScreen("main");
 
-    }
-  );
-
+  }, 700);
 }
 
 
-function spawnFloatText(text,e){
+/* =========================================================
+   ADMIN
+   ========================================================= */
+
+function isAdminUser() {
+
+  if (!state.user) {
+    return false;
+  }
+
+  const username =
+    normalizeUsername(
+      state.user.username
+    );
+
+  return ADMIN_USERNAMES.includes(
+    username
+  );
+}
+
+
+function updateAdminUI() {
+
+  const row =
+    $("row-admin");
+
+  if (!row) return;
+
+  row.style.display =
+    state.isAdmin
+      ? "flex"
+      : "none";
+}
+
+
+/* =========================================================
+   MAIN UI
+   ========================================================= */
+
+function updateMainUI() {
+
+  if (!state.user) return;
+
+
+  const name =
+    $("main-name");
+
+  const handle =
+    $("main-handle");
+
+  const coins =
+    $("main-coins");
+
+  const crystals =
+    $("main-crystals");
+
+
+  if (name) {
+    name.textContent =
+      state.user.name ||
+      state.user.username;
+  }
+
+
+  if (handle) {
+
+    handle.textContent =
+      "@" +
+      (
+        state.user.username ||
+        "user"
+      );
+  }
+
+
+  if (coins) {
+    coins.textContent =
+      formatNumber(state.coins);
+  }
+
+
+  if (crystals) {
+    crystals.textContent =
+      formatNumber(state.crystals);
+  }
+
+
+  updateEnergyUI();
+
+  updateLanguageUI();
+
+  updateAdminUI();
+}
+
+
+function formatNumber(number) {
+
+  return Number(number || 0)
+    .toLocaleString(
+      state.language === "ru"
+        ? "ru-RU"
+        : "en-US"
+    );
+}
+
+
+/* =========================================================
+   ENERGY
+   ========================================================= */
+
+function updateEnergyUI() {
+
+  const count =
+    $("energy-count");
+
+  const fill =
+    $("energy-fill");
+
+
+  const max =
+    state.maxEnergy || MAX_ENERGY;
+
+  const current =
+    Math.max(
+      0,
+      Math.min(
+        state.energy,
+        max
+      )
+    );
+
+
+  if (count) {
+
+    count.textContent =
+      `${current}/${max}`;
+  }
+
+
+  if (fill) {
+
+    fill.style.width =
+      `${(current / max) * 100}%`;
+  }
+}
+
+
+function startEnergyRegeneration() {
+
+  clearInterval(
+    state.energyTimer
+  );
+
+
+  state.energyTimer =
+    setInterval(() => {
+
+      if (
+        state.energy <
+        state.maxEnergy
+      ) {
+
+        state.energy++;
+
+        updateEnergyUI();
+
+        saveLocalAccount();
+
+      }
+
+    }, ENERGY_REGEN_MS);
+}
+
+
+/* =========================================================
+   TAP
+   ========================================================= */
+
+function tapPlanet(event) {
+
+  if (!state.user) return;
+
+
+  if (state.energy <= 0) {
+
+    showToast(
+      state.language === "uz"
+        ? "Energiya tugadi."
+        : state.language === "ru"
+          ? "Энергия закончилась."
+          : "No energy."
+    );
+
+    return;
+  }
+
+
+  state.energy -= 1;
+
+  state.coins += TAP_REWARD;
+
+  state.taps += 1;
+
+
+  updateMainUI();
+
+  saveLocalAccount();
+
+  saveFirebaseUser();
+
+
+  createFloatPlus(
+    event,
+    TAP_REWARD
+  );
+
+
+  hapticTap();
+}
+
+
+function createFloatPlus(event, amount) {
 
   const stage =
-    $('tap-stage');
+    $("tap-stage");
 
-  if(!stage) return;
+  if (!stage) return;
+
+
+  const element =
+    document.createElement("div");
+
+  element.className =
+    "float-plus";
+
+  element.textContent =
+    "+" + amount;
+
 
   const rect =
     stage.getBoundingClientRect();
 
-  const x =
-    (
-      e.clientX ||
-      (
-        rect.left +
-        rect.width / 2
-      )
-    ) -
+
+  let x =
+    event?.clientX ??
     rect.left +
-    (
-      Math.random()*40-20
-    );
+    rect.width / 2;
 
-  const y =
-    (
-      e.clientY ||
-      (
-        rect.top +
-        rect.height / 2
-      )
-    ) -
-    rect.top;
+  let y =
+    event?.clientY ??
+    rect.top +
+    rect.height / 2;
 
-  const el =
-    document.createElement(
-      'div'
-    );
 
-  el.className =
-    'float-plus';
+  x -= rect.left;
 
-  el.style.left =
-    x + 'px';
+  y -= rect.top;
 
-  el.style.top =
-    y + 'px';
 
-  el.textContent =
-    text;
+  element.style.left =
+    `${x}px`;
 
-  stage.appendChild(el);
+  element.style.top =
+    `${y}px`;
 
-  setTimeout(
-    ()=>el.remove(),
-    800
-  );
 
+  stage.appendChild(element);
+
+
+  setTimeout(() => {
+
+    element.remove();
+
+  }, 850);
+}
+
+
+function hapticTap() {
+
+  try {
+
+    if (
+      tg &&
+      tg.HapticFeedback
+    ) {
+
+      tg.HapticFeedback
+        .impactOccurred("light");
+    }
+
+  } catch (e) {}
 }
 
 
 /* =========================================================
-   13. ENERGY
+   NAVIGATION
    ========================================================= */
 
-function startEnergyLoop(){
+function openNav(name) {
 
-  if(energyTimer){
-    clearInterval(
-      energyTimer
-    );
-  }
-
-  energyTimer =
-    setInterval(
-      ()=>{
-
-        if(
-          !user ||
-          user.energy >= user.maxEnergy
-        ){
-          return;
-        }
-
-        user.energy =
-          Math.min(
-            user.maxEnergy,
-            user.energy +
-            user.regen
-          );
-
-        renderMain();
-
-      },
-      1000
-    );
-
-}
-
-
-/* =========================================================
-   14. FIRESTORE SYNC
-   ========================================================= */
-
-async function flushSync(){
-
-  if(
-    !userRef ||
-    !user
-  ){
+  if (!state.user) {
+    showScreen("auth");
     return;
   }
 
-  try{
 
-    await userRef.update({
+  if (name === "tap") {
 
-      coins:user.coins,
+    showScreen("main");
 
-      energy:user.energy,
+  } else if (name === "shop") {
 
-      crystals:user.crystals,
+    renderShop();
 
-      lastSeen:Date.now()
+    showScreen("shop");
 
-    });
+  } else if (name === "tasks") {
 
-    pendingTaps=0;
+    renderTasks();
 
-  }catch(err){
+    updateReferralUI();
 
-    console.error(
-      'sync error',
-      err
-    );
+    showScreen("tasks");
 
+  } else if (name === "settings") {
+
+    showScreen("settings");
   }
 
+
+  updateNav(name);
 }
 
 
-window.addEventListener(
-  'beforeunload',
-  flushSync
-);
+function updateNav(active) {
 
-document.addEventListener(
-  'visibilitychange',
-  ()=>{
+  document
+    .querySelectorAll(".nav-btn")
+    .forEach(btn => {
 
-    if(document.hidden){
-      flushSync();
-    }
-
-  }
-);
-
-
-/* =========================================================
-   15. NAVIGATION
-   ========================================================= */
-
-document
-  .querySelectorAll('.nav-btn')
-  .forEach(btn=>{
-
-    btn.addEventListener(
-      'click',
-      ()=>{
-
-        document
-          .querySelectorAll('.nav-btn')
-          .forEach(
-            b=>b.classList.remove(
-              'active'
-            )
-          );
-
-        btn.classList.add(
-          'active'
-        );
-
-        const nav =
-          btn.dataset.nav;
-
-        if(nav==='tap'){
-
-          showScreen(
-            'screen-main'
-          );
-
-        }
-
-        if(nav==='shop'){
-
-          showScreen(
-            'screen-shop'
-          );
-
-          renderShop();
-
-        }
-
-        if(nav==='tasks'){
-
-          showScreen(
-            'screen-tasks'
-          );
-
-          renderTasks();
-
-        }
-
-        if(nav==='settings'){
-
-          showScreen(
-            'screen-settings'
-          );
-
-        }
-
-      }
-    );
-
-});
-
-
-document
-  .querySelectorAll('[data-back]')
-  .forEach(btn=>{
-
-    btn.addEventListener(
-      'click',
-      ()=>{
-
-        const target =
-          btn.dataset.back;
-
-        document
-          .querySelectorAll('.nav-btn')
-          .forEach(
-            b=>b.classList.remove(
-              'active'
-            )
-          );
-
-        if(target==='tap'){
-
-          showScreen(
-            'screen-main'
-          );
-
-          const tapNav =
-            document.querySelector(
-              '[data-nav="tap"]'
-            );
-
-          if(tapNav){
-            tapNav.classList.add(
-              'active'
-            );
-          }
-
-        }
-
-        if(target==='settings'){
-
-          showScreen(
-            'screen-settings'
-          );
-
-        }
-
-      }
-    );
-
-});
-
-
-/* =========================================================
-   16. SHOP
-   ========================================================= */
-function renderShop(){
-
-  if(!user) return;
-
-  const items = [
-
-    {
-      key:'tap',
-      label:t('tapPower'),
-      desc:t('tapPowerDesc'),
-      level:user.tapLevel,
-      valueNow:user.tapLevel,
-      valueNext:user.tapLevel + 1,
-      icon:'🪙'
-    },
-
-    {
-      key:'energy',
-      label:t('maxEnergy'),
-      desc:t('maxEnergyDesc'),
-      level:user.energyLevel,
-      valueNow:user.maxEnergy,
-      valueNext:user.maxEnergy + PRICING.energy.step,
-      icon:'⚡'
-    },
-
-    {
-      key:'regen',
-      label:t('energyRegen'),
-      desc:t('energyRegenDesc'),
-      level:user.regenLevel,
-      valueNow:user.regen,
-      valueNext:user.regen + PRICING.regen.step,
-      icon:'🔋'
-    }
-
-  ];
-
-  let html='';
-
-  items.forEach(it=>{
-
-    const crystalCost =
-      crystalCostForLevel(
-        it.key,
-        it.level
+      btn.classList.toggle(
+        "active",
+        btn.dataset.nav === active
       );
 
-    html += `
+    });
+}
 
-      <div class="card shop-item">
+
+/* =========================================================
+   SHOP
+   ========================================================= */
+
+const defaultShop = [
+
+  {
+    id: "energy",
+    name: "⚡ Energy",
+    desc: "Increase maximum energy.",
+    level: 1,
+    coinPrice: 500,
+    crystalPrice: 5
+  },
+
+  {
+    id: "multiplier",
+    name: "🔥 Tap Power",
+    desc: "Increase reward per tap.",
+    level: 1,
+    coinPrice: 1000,
+    crystalPrice: 10
+  },
+
+  {
+    id: "storage",
+    name: "📦 Energy Storage",
+    desc: "Increase maximum energy capacity.",
+    level: 1,
+    coinPrice: 2500,
+    crystalPrice: 20
+  }
+
+];
+
+
+async function loadShop() {
+
+  state.shop = [
+    ...defaultShop
+  ];
+
+
+  if (!firebaseReady || !db) {
+    return;
+  }
+
+
+  try {
+
+    const snapshot =
+      await db
+        .collection("shop")
+        .get();
+
+
+    if (!snapshot.empty) {
+
+      state.shop =
+        snapshot.docs.map(
+          doc => ({
+            id: doc.id,
+            ...doc.data()
+          })
+        );
+    }
+
+  } catch (error) {
+
+    console.warn(
+      "Shop loading:",
+      error
+    );
+  }
+}
+
+
+function renderShop() {
+
+  const container =
+    $("shop-items");
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+
+  state.shop.forEach(item => {
+
+    const card =
+      document.createElement("div");
+
+    card.className = "card";
+
+
+    card.innerHTML = `
+
+      <div class="shop-item">
 
         <div class="shop-item-top">
 
           <div class="shop-item-name">
-            ${it.icon}
-            ${it.label}
+            ${escapeHTML(item.name)}
           </div>
 
           <div class="shop-item-level">
-            ${t('level')}
-            ${it.level}
-            (${it.valueNow} ${t('current')})
+            Lv.${Number(item.level || 1)}
           </div>
 
         </div>
 
         <div class="shop-item-desc">
-          ${it.desc}
-          → ${it.valueNext}
+          ${escapeHTML(item.desc || "")}
         </div>
 
         <div class="buy-row">
 
           <button
-            class="buy-btn crystal"
-            data-buy="${it.key}"
+            type="button"
+            class="buy-btn coin"
+            data-buy-type="coin"
+            data-shop-id="${escapeHTML(item.id)}"
           >
-            💎 ${fmt(crystalCost)}
+            🪙 ${formatNumber(item.coinPrice || 0)}
+          </button>
+
+          <button
+            type="button"
+            class="buy-btn crystal"
+            data-buy-type="crystal"
+            data-shop-id="${escapeHTML(item.id)}"
+          >
+            💎 ${formatNumber(item.crystalPrice || 0)}
           </button>
 
         </div>
@@ -1594,1464 +1908,1436 @@ function renderShop(){
 
     `;
 
+
+    container.appendChild(card);
   });
+}
 
 
-  /* ⚡ ENERGY REFILL */
+function buyShopItem(id, type) {
 
-  html += `
+  const item =
+    state.shop.find(
+      x => x.id === id
+    );
 
-    <div class="card shop-item">
-
-      <div class="shop-item-top">
-
-        <div class="shop-item-name">
-          ⚡ ${t('refillEnergy')}
-        </div>
-
-      </div>
-
-      <div class="shop-item-desc">
-        ${t('refillDesc')}
-      </div>
-
-      <div class="buy-row">
-
-        <button
-          class="buy-btn crystal"
-          id="buy-refill"
-        >
-          💎 10
-        </button>
-
-      </div>
-
-    </div>
-
-  `;
+  if (!item) return;
 
 
-  /* 🪙 COIN → CRYSTAL */
-
-  html += `
-
-    <div class="card shop-item">
-
-      <div class="shop-item-top">
-
-        <div class="shop-item-name">
-          🪙 Coin → 💎 Crystal
-        </div>
-
-      </div>
-
-      <div class="shop-item-desc">
-        500 🪙 = 1 💎
-      </div>
-
-      <div class="buy-row">
-
-        <button
-          class="buy-btn crystal"
-          id="exchange-500"
-        >
-          🪙 500 → 💎 1
-        </button>
-
-      </div>
-
-    </div>
-
-  `;
+  const price =
+    type === "coin"
+      ? Number(item.coinPrice || 0)
+      : Number(item.crystalPrice || 0);
 
 
-  const shopItems =
-    $('shop-items');
+  if (type === "coin") {
 
-  if(shopItems){
-    shopItems.innerHTML = html;
-  }
+    if (state.coins < price) {
 
-
-  /* Upgrade buttons */
-
-  document
-    .querySelectorAll('[data-buy]')
-    .forEach(btn=>{
-
-      btn.addEventListener(
-        'click',
-        ()=>buyUpgrade(
-          btn.dataset.buy
-        )
+      showToast(
+        t("notEnoughCoins")
       );
 
-    });
+      return;
+    }
 
+    state.coins -= price;
 
-  /* Refill */
+  } else {
 
-  const refillBtn =
-    $('buy-refill');
+    if (state.crystals < price) {
 
-  if(refillBtn){
+      showToast(
+        t("notEnoughCrystals")
+      );
 
-    refillBtn.addEventListener(
-      'click',
-      buyRefill
-    );
+      return;
+    }
 
+    state.crystals -= price;
   }
 
 
-  /* Exchange */
+  applyShopUpgrade(item);
 
-  const exchangeBtn =
-    $('exchange-500');
 
-  if(exchangeBtn){
+  updateMainUI();
 
-    exchangeBtn.addEventListener(
-      'click',
-      exchangeCoinsForCrystal
-    );
+  saveLocalAccount();
 
+  saveFirebaseUser();
+
+
+  showToast(
+    state.language === "uz"
+      ? "Xarid qilindi."
+      : state.language === "ru"
+        ? "Покупка выполнена."
+        : "Purchase successful."
+  );
+}
+
+
+function applyShopUpgrade(item) {
+
+  if (item.id === "energy") {
+
+    state.maxEnergy += 100;
+
+    state.energy =
+      Math.min(
+        state.energy + 100,
+        state.maxEnergy
+      );
   }
 
+
+  if (item.id === "storage") {
+
+    state.maxEnergy += 250;
+  }
+
+
+  if (item.id === "multiplier") {
+
+    state.user.tapPower =
+      Number(
+        state.user.tapPower || 1
+      ) + 1;
+  }
 }
 
 
 /* =========================================================
-   17. TASKS + REFERRAL
+   TASKS
    ========================================================= */
 
-function buildRefLink(){
+async function loadTasks() {
 
-  return `https://t.me/${BOT_USERNAME}/${APP_SHORT_NAME}?startapp=${user.username}`;
-
-}
+  state.tasks = [];
 
 
-function renderTasks(){
+  if (!firebaseReady || !db) {
 
-  if(!user) return;
+    renderTasks();
 
-  const refLink =
-    $('ref-link');
-
-  if(refLink){
-
-    refLink.textContent =
-      buildRefLink();
-
+    return;
   }
 
 
-  const refCount =
-    $('ref-count');
+  try {
 
-  if(refCount){
-
-    refCount.textContent =
-      `${t('invited')}: ${user.refCount || 0}`;
-
-  }
-
-
-  renderTaskList();
-
-}
-
-
-const refCopy =
-  $('ref-copy');
-
-if(refCopy){
-
-  refCopy.addEventListener(
-    'click',
-    ()=>{
-
-      navigator
-        .clipboard
-        .writeText(
-          buildRefLink()
-        )
-        .then(
-          ()=>toast(
-            t('linkCopied')
-          )
-        );
-
-    }
-  );
-
-}
-
-
-async function loadTasks(){
-
-  try{
-
-    const snap =
+    const snapshot =
       await db
-        .collection('tasks')
+        .collection("tasks")
         .where(
-          'active',
-          '==',
+          "active",
+          "==",
           true
         )
         .get();
 
-    tasksCache =
-      snap.docs.map(
-        d=>({
-          id:d.id,
-          ...d.data()
+
+    state.tasks =
+      snapshot.docs.map(
+        doc => ({
+          id: doc.id,
+          ...doc.data()
         })
       );
 
-    renderTaskList();
+  } catch (error) {
 
-  }catch(err){
-
-    console.error(
-      'Task loading error:',
-      err
+    console.warn(
+      "Tasks loading:",
+      error
     );
-
   }
 
+
+  renderTasks();
 }
 
 
-function renderTaskList(){
+function renderTasks() {
 
-  if(!user) return;
+  const container =
+    $("task-list");
 
-  const taskList =
-    $('task-list');
+  if (!container) return;
 
-  if(!taskList) return;
-
-  const completed =
-    user.completedTasks || [];
-
-  let html='';
+  container.innerHTML = "";
 
 
-  tasksCache.forEach(
-    task=>{
+  if (!state.tasks.length) {
 
-      const isDone =
-        completed.includes(
-          task.id
-        );
+    const empty =
+      document.createElement("div");
+
+    empty.className = "card";
+
+    empty.innerHTML = `
+      <div class="settings-value">
+        ${state.language === "uz"
+          ? "Hozircha vazifalar yo‘q."
+          : state.language === "ru"
+            ? "Пока заданий нет."
+            : "No tasks yet."}
+      </div>
+    `;
+
+    container.appendChild(empty);
+
+    return;
+  }
 
 
-      html += `
+  state.tasks.forEach(task => {
 
-        <div class="card task-item">
+    const completed =
+      state.completedTasks.includes(
+        task.id
+      );
 
-          <div class="task-info">
 
-            <div class="task-name">
-              ${task.title}
-            </div>
+    const card =
+      document.createElement("div");
 
-            <div class="task-reward">
-              +${task.reward}💎
-            </div>
+    card.className = "card";
 
+
+    card.innerHTML = `
+
+      <div class="task-item">
+
+        <div class="task-info">
+
+          <div class="task-name">
+            ${escapeHTML(
+              task.title ||
+              task.name ||
+              "Task"
+            )}
           </div>
 
-          ${
-            isDone
-
-            ?
-
-            `<div class="task-btn done">
-              ${t('done')}
-            </div>`
-
-            :
-
-            `<button
-              class="task-btn"
-              data-task="${task.id}"
-            >
-              ${
-                task.type === 'channel'
-                ? t('join')
-                : t('check')
-              }
-            </button>`
-          }
+          <div class="task-reward">
+            💎 +${formatNumber(
+              task.reward || 0
+            )}
+          </div>
 
         </div>
 
-      `;
+        <button
+          type="button"
+          class="task-btn ${completed ? "done" : ""}"
+          data-task-id="${escapeHTML(task.id)}"
+          ${completed ? "disabled" : ""}
+        >
+          ${
+            completed
+              ? "✓"
+              : state.language === "uz"
+                ? "Bajarish"
+                : state.language === "ru"
+                  ? "Выполнить"
+                  : "Complete"
+          }
+        </button>
 
-    }
-  );
+      </div>
+
+    `;
 
 
-  taskList.innerHTML =
-    html;
-
-
-  document
-    .querySelectorAll('[data-task]')
-    .forEach(btn=>{
-
-      btn.addEventListener(
-        'click',
-        ()=>completeTask(
-          btn.dataset.task
-        )
-      );
-
-    });
-
+    container.appendChild(card);
+  });
 }
 
 
-async function completeTask(taskId){
+async function completeTask(id) {
 
-  if(!user) return;
+  if (
+    state.completedTasks.includes(id)
+  ) {
 
-  const task =
-    tasksCache.find(
-      t2=>t2.id===taskId
+    showToast(
+      t("taskAlready")
     );
 
-  if(!task) return;
-
-
-  if(task.type==='channel'){
-
-    if(task.channel){
-
-      if(
-        tg &&
-        tg.openTelegramLink
-      ){
-
-        tg.openTelegramLink(
-          `https://t.me/${task.channel}`
-        );
-
-      }
-
-    }
-
-
-    if(
-      BOT_SERVER_URL &&
-      telegramId
-    ){
-
-      try{
-
-        const res =
-          await fetch(
-            BOT_SERVER_URL +
-            '/check-subscription',
-            {
-
-              method:'POST',
-
-              headers:{
-                'Content-Type':
-                  'application/json'
-              },
-
-              body:
-                JSON.stringify({
-
-                  telegramId,
-                  channel:
-                    task.channel
-
-                })
-
-            }
-          );
-
-
-        const data =
-          await res.json();
-
-
-        if(!data.subscribed){
-
-          toast(
-            t('toastNotSubscribed')
-          );
-
-          return;
-
-        }
-
-      }catch(err){
-
-        console.error(err);
-
-        toast(
-          t('toastNotSubscribed')
-        );
-
-        return;
-
-      }
-
-    }
-
-  }
-
-
-  const completed =
-    user.completedTasks || [];
-
-
-  if(
-    completed.includes(
-      taskId
-    )
-  ){
-
     return;
-
   }
 
 
-  completed.push(
-    taskId
-  );
+  const task =
+    state.tasks.find(
+      x => x.id === id
+    );
+
+  if (!task) return;
 
 
-  user.completedTasks =
-    completed;
+  /*
+    Bu frontend demo tekshiruvi.
 
-  user.crystals +=
+    Haqiqiy Telegram kanal obunasini
+    xavfsiz tekshirish uchun backend/bot kerak.
+  */
+
+  state.crystals +=
     Number(task.reward || 0);
 
 
-  if(userRef){
-
-    await userRef.update({
-
-      completedTasks:
-        completed,
-
-      crystals:
-        user.crystals
-
-    });
-
-  }
+  state.completedTasks.push(id);
 
 
-  toast(
-    t('toastTaskDone')
+  updateMainUI();
+
+  renderTasks();
+
+  saveLocalAccount();
+
+  await saveFirebaseUser();
+
+
+  showToast(
+    t("taskCompleted")
   );
-
-  renderMain();
-  renderTaskList();
-
 }
 
 
 /* =========================================================
-   18. SETTINGS
+   REFERRAL
    ========================================================= */
 
-const rowLanguage =
-  $('row-language');
+function getTelegramStartParam() {
 
-if(rowLanguage){
+  if (
+    tg &&
+    tg.initDataUnsafe
+  ) {
 
-  rowLanguage.addEventListener(
-    'click',
-    ()=>openModal(
-      'modal-lang'
-    )
-  );
+    return (
+      tg.initDataUnsafe
+        .start_param ||
+      ""
+    );
+  }
 
+  return "";
 }
 
 
-const rowDevices =
-  $('row-devices');
+function getReferralLink() {
 
-if(rowDevices){
+  const botUsername =
+    "GalaxyCoinBot";
 
-  rowDevices.addEventListener(
-    'click',
-    ()=>{
+  const userId =
+    state.user?.id ||
+    "user";
 
-      renderDevices();
 
-      openModal(
-        'modal-devices'
-      );
-
-    }
+  return (
+    `https://t.me/${botUsername}?start=${userId}`
   );
-
 }
 
 
-const rowGift =
-  $('row-gift');
+function updateReferralText() {
 
-if(rowGift){
+  const title =
+    $("ref-title");
 
-  rowGift.addEventListener(
-    'click',
-    ()=>{
+  const desc =
+    $("ref-desc");
 
-      const receipt =
-        $('gift-receipt-wrap');
 
-      if(receipt){
-        receipt.innerHTML='';
-      }
+  if (title) {
+    title.textContent =
+      "👥 " + t("referral");
+  }
 
-      $('gift-username').value='';
-      $('gift-amount').value='';
-      $('gift-err').textContent='';
-
-      openModal(
-        'modal-gift'
-      );
-
-    }
-  );
-
+  if (desc) {
+    desc.textContent =
+      t("referralDesc");
+  }
 }
 
 
-const rowAdmin =
-  $('row-admin');
+function updateReferralUI() {
 
-if(rowAdmin){
+  const link =
+    $("ref-link");
 
-  rowAdmin.addEventListener(
-    'click',
-    ()=>{
+  const count =
+    $("ref-count");
 
-      showScreen(
-        'screen-admin'
-      );
 
-      loadAdminTasks();
+  if (link) {
 
-    }
-  );
+    link.textContent =
+      getReferralLink();
+  }
 
+
+  if (count) {
+
+    count.textContent =
+      `${t("invited")}: ${state.referralCount}`;
+  }
+
+
+  updateReferralText();
 }
 
 
-/*
- * Logout endi Login'ga olib bormaydi.
- * Til tanlash oynasiga qaytadi.
- */
+async function copyReferralLink() {
 
-const rowLogout =
-  $('row-logout');
+  const link =
+    getReferralLink();
 
-if(rowLogout){
 
-  rowLogout.addEventListener(
-    'click',
-    async ()=>{
+  try {
 
-      await flushSync();
+    await navigator.clipboard.writeText(
+      link
+    );
 
-      clearInterval(
-        energyTimer
-      );
+  } catch (error) {
 
-      clearInterval(
-        syncTimer
-      );
+    const textarea =
+      document.createElement("textarea");
 
-      user=null;
-      userRef=null;
+    textarea.value = link;
 
-      localStorage.removeItem(
-        'gc_lang'
-      );
+    document.body.appendChild(
+      textarea
+    );
 
-      toast(
-        t('toastLoggedOut')
-      );
+    textarea.select();
 
-      showScreen(
-        'screen-lang'
-      );
+    document.execCommand(
+      "copy"
+    );
 
-    }
+    textarea.remove();
+  }
+
+
+  showToast(
+    t("copied")
   );
-
 }
 
 
 /* =========================================================
-   19. MODALS
+   SETTINGS
    ========================================================= */
 
-function openModal(id){
+function openSettingsLanguage() {
 
-  const el=$(id);
-
-  if(el){
-    el.classList.add(
-      'active'
-    );
-  }
-
+  openModal("modal-lang");
 }
 
 
-function closeModal(id){
+function openDevices() {
 
-  const el=$(id);
+  updateDevicesUI();
 
-  if(el){
-    el.classList.remove(
-      'active'
-    );
-  }
-
+  openModal("modal-devices");
 }
 
 
-document
-  .querySelectorAll('[data-close]')
-  .forEach(btn=>{
+function updateDevicesUI() {
 
-    btn.addEventListener(
-      'click',
-      ()=>closeModal(
-        btn.dataset.close
-      )
-    );
+  const container =
+    $("devices-list");
 
-});
+  if (!container) return;
+
+  container.innerHTML = "";
 
 
-document
-  .querySelectorAll('.modal-overlay')
-  .forEach(ov=>{
+  if (!state.devices.length) {
 
-    ov.addEventListener(
-      'click',
-      e=>{
-
-        if(e.target===ov){
-
-          ov.classList.remove(
-            'active'
-          );
-
-        }
-
-      }
-    );
-
-});
-
-
-/* =========================================================
-   20. DEVICES
-   ========================================================= */
-
-function renderDevices(){
-
-  if(!user) return;
-
-  const devices =
-    user.devices || [];
-
-  const list =
-    $('devices-list');
-
-  if(!list) return;
-
-
-  if(devices.length===0){
-
-    list.innerHTML =
-      `<div class="small-note">
-        ${t('noDevices')}
-      </div>`;
+    container.innerHTML = `
+      <div class="settings-value">
+        ${t("connected")}
+      </div>
+    `;
 
     return;
-
   }
 
 
-  let html='';
+  state.devices.forEach(device => {
+
+    const item =
+      document.createElement("div");
+
+    item.className =
+      "device-item";
 
 
-  devices.forEach(
-    (d,i)=>{
+    const date =
+      device.connectedAt
+        ? new Date(
+            device.connectedAt
+          ).toLocaleDateString()
+        : "";
 
-      const isCurrent =
-        String(d.telegramId) ===
-        String(telegramId);
 
+    item.innerHTML = `
 
-      html += `
+      <div>
 
-        <div class="device-item">
-
-          <span>
-            ${d.tgName || 'Device'}
-            ${isCurrent ? '(current)' : ''}
-          </span>
-
-          ${
-            isCurrent
-            ? ''
-            :
-            `<span
-              class="remove-device"
-              data-rmdevice="${i}"
-            >
-              ${t('removeDevice')}
-            </span>`
-          }
-
+        <div>
+          ${escapeHTML(
+            device.name ||
+            "Device"
+          )}
         </div>
 
-      `;
+        <div
+          style="
+            color:var(--muted);
+            margin-top:3px;
+            font-size:10px;
+          "
+        >
+          ${escapeHTML(date)}
+        </div>
 
-    }
-  );
+      </div>
 
+      <div
+        class="remove-device"
+        data-device-id="${escapeHTML(device.id)}"
+      >
+        ${state.language === "uz"
+          ? "O‘chirish"
+          : state.language === "ru"
+            ? "Удалить"
+            : "Remove"}
+      </div>
 
-  list.innerHTML =
-    html;
-
-
-  document
-    .querySelectorAll('[data-rmdevice]')
-    .forEach(btn=>{
-
-      btn.addEventListener(
-        'click',
-        async ()=>{
-
-          const idx =
-            parseInt(
-              btn.dataset.rmdevice
-            );
-
-          const devices =
-            user.devices || [];
-
-          devices.splice(
-            idx,
-            1
-          );
-
-          user.devices =
-            devices;
+    `;
 
 
-          if(userRef){
-
-            await userRef.update({
-              devices
-            });
-
-          }
-
-
-          renderDevices();
-
-          toast(
-            t('toastSaved')
-          );
-
-        }
-      );
-
-    });
-
+    container.appendChild(item);
+  });
 }
 
 
-/* =========================================================
-   21. SEND CRYSTALS
-   ========================================================= */
-
-const giftConfirm =
-  $('gift-confirm-btn');
-
-if(giftConfirm){
-
-  giftConfirm.addEventListener(
-    'click',
-    async ()=>{
-
-      if(!user) return;
-
-      const errEl =
-        $('gift-err');
-
-      errEl.textContent='';
-
-
-      let recipient =
-        $('gift-username')
-          .value
-          .trim()
-          .toLowerCase()
-          .replace('@','');
-
-
-      const amount =
-        parseInt(
-          $('gift-amount').value
-        );
-
-
-      if(
-        !recipient ||
-        !amount
-      ){
-
-        errEl.textContent =
-          'Barcha maydonlarni to‘ldiring';
-
-        return;
-
-      }
-
-
-      if(amount < 10){
-
-        errEl.textContent =
-          t('giftMin');
-
-        return;
-
-      }
-
-
-      if(
-        recipient ===
-        user.username
-      ){
-
-        errEl.textContent =
-          t('giftSelf');
-
-        return;
-
-      }
-
-
-      if(
-        user.crystals <
-        amount
-      ){
-
-        errEl.textContent =
-          t('giftInsufficient');
-
-        return;
-
-      }
-
-
-      try{
-
-        const snap =
-          await userRefFor(
-            recipient
-          ).get();
-
-
-        if(!snap.exists){
-
-          errEl.textContent =
-            t('giftNotFound');
-
-          return;
-
-        }
-
-
-        user.crystals -=
-          amount;
-
-
-        if(userRef){
-
-          await userRef.update({
-            crystals:user.crystals
-          });
-
-        }
-
-
-        await userRefFor(
-          recipient
-        ).update({
-
-          crystals:
-            firebase.firestore
-              .FieldValue
-              .increment(amount)
-
-        });
-
-
-        renderMain();
-
-
-        const now =
-          new Date();
-
-
-        const receipt =
-          $('gift-receipt-wrap');
-
-
-        if(receipt){
-
-          receipt.innerHTML = `
-
-            <div
-              class="receipt"
-              style="margin-top:14px;"
-            >
-
-              <div
-                style="
-                  font-weight:700;
-                  margin-bottom:2px;
-                "
-              >
-                ${t('giftSuccessTitle')} ✅
-              </div>
-
-              <div class="receipt-row">
-                <span>${t('receiptFrom')}</span>
-                <b>@${user.username}</b>
-              </div>
-
-              <div class="receipt-row">
-                <span>${t('receiptTo')}</span>
-                <b>@${recipient}</b>
-              </div>
-
-              <div class="receipt-row">
-                <span>${t('receiptAmount')}</span>
-                <b>${amount} 💎</b>
-              </div>
-
-              <div class="receipt-row">
-                <span>${t('receiptTime')}</span>
-                <b>${now.toLocaleString()}</b>
-              </div>
-
-            </div>
-
-          `;
-
-        }
-
-
-      }catch(err){
-
-        console.error(err);
-
-        errEl.textContent =
-          'Error: ' + err.message;
-
-      }
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   22. ADMIN TASKS
-   ========================================================= */
-
-const addTaskBtn =
-  $('ad-add-task-btn');
-
-if(addTaskBtn){
-
-  addTaskBtn.addEventListener(
-    'click',
-    async ()=>{
-
-      const title =
-        $('ad-task-title')
-          .value
-          .trim();
-
-      const channel =
-        $('ad-task-channel')
-          .value
-          .trim()
-          .replace('@','');
-
-      const reward =
-        parseInt(
-          $('ad-task-reward').value
-        );
-
-      const type =
-        $('ad-task-type').value;
-
-
-      if(
-        !title ||
-        !reward
-      ){
-
-        return;
-
-      }
-
-
-      try{
-
-        await db
-          .collection('tasks')
-          .add({
-
-            title,
-            channel,
-            reward,
-            type,
-            active:true,
-            createdAt:Date.now()
-
-          });
-
-
-        $('ad-task-title').value='';
-        $('ad-task-channel').value='';
-        $('ad-task-reward').value='';
-
-
-        toast(
-          t('toastSaved')
-        );
-
-
-        loadAdminTasks();
-        loadTasks();
-
-
-      }catch(err){
-
-        console.error(err);
-
-      }
-
-    }
-  );
-
-}
-
-
-async function loadAdminTasks(){
-
-  try{
-
-    const snap =
-      await db
-        .collection('tasks')
-        .orderBy(
-          'createdAt',
-          'desc'
-        )
-        .get();
-
-
-    let html='';
-
-
-    snap.docs.forEach(
-      d=>{
-
-        const t2 =
-          d.data();
-
-
-        html += `
-
-          <div
-            class="task-item"
-            style="
-              padding:10px 0;
-              border-bottom:
-                1px solid
-                var(--border);
-            "
-          >
-
-            <div class="task-info">
-
-              <div class="task-name">
-                ${t2.title}
-              </div>
-
-              <div class="task-reward">
-                +${t2.reward}💎 · ${t2.type}
-              </div>
-
-            </div>
-
-            <span
-              class="remove-device"
-              data-rmtask="${d.id}"
-            >
-              ✕
-            </span>
-
-          </div>
-
-        `;
-
-      }
+function removeDevice(id) {
+
+  if (state.devices.length <= 1) {
+
+    showToast(
+      state.language === "uz"
+        ? "Oxirgi qurilmani o‘chirib bo‘lmaydi."
+        : state.language === "ru"
+          ? "Нельзя удалить последнее устройство."
+          : "You cannot remove the last device."
     );
 
-
-    const list =
-      $('ad-task-list');
-
-    if(!list) return;
-
-
-    list.innerHTML =
-      html ||
-      `<div class="small-note">
-        No tasks yet
-      </div>`;
-
-
-    document
-      .querySelectorAll('[data-rmtask]')
-      .forEach(btn=>{
-
-        btn.addEventListener(
-          'click',
-          async ()=>{
-
-            await db
-              .collection('tasks')
-              .doc(
-                btn.dataset.rmtask
-              )
-              .delete();
-
-            loadAdminTasks();
-            loadTasks();
-
-          }
-        );
-
-      });
-
-
-  }catch(err){
-
-    console.error(
-      'Admin tasks error:',
-      err
-    );
-
+    return;
   }
 
+
+  state.devices =
+    state.devices.filter(
+      device =>
+        device.id !== id
+    );
+
+
+  saveLocalAccount();
+
+  saveFirebaseUser();
+
+  updateDevicesUI();
 }
 
 
 /* =========================================================
-   23. ADMIN GIVE CURRENCY
+   GIFT
    ========================================================= */
 
-const adminGiveBtn =
-  $('ad-give-btn');
+async function sendCrystals() {
 
-if(adminGiveBtn){
+  const username =
+    normalizeUsername(
+      $("gift-username").value
+    );
 
-  adminGiveBtn.addEventListener(
-    'click',
-    async ()=>{
-
-      const errEl =
-        $('ad-give-err');
-
-      errEl.textContent='';
+  const amount =
+    Number(
+      $("gift-amount").value
+    );
 
 
-      const uname =
-        $('ad-give-username')
-          .value
-          .trim()
-          .toLowerCase();
+  const error =
+    $("gift-err");
+
+  error.textContent = "";
 
 
-      const coins =
-        parseInt(
-          $('ad-give-coins').value
-        ) || 0;
+  if (!username) {
+
+    error.textContent =
+      t("invalidUsername");
+
+    return;
+  }
 
 
-      const crystals =
-        parseInt(
-          $('ad-give-crystals').value
-        ) || 0;
+  if (
+    !Number.isFinite(amount) ||
+    amount < 10
+  ) {
+
+    error.textContent =
+      t("minCrystal");
+
+    return;
+  }
 
 
-      if(!uname){
+  if (state.crystals < amount) {
 
-        errEl.textContent =
-          'Barcha maydonlarni to‘ldiring';
+    error.textContent =
+      t("notEnoughCrystals");
 
-        return;
-
-      }
-
-
-      try{
-
-        const snap =
-          await userRefFor(
-            uname
-          ).get();
+    return;
+  }
 
 
-        if(!snap.exists){
-
-          errEl.textContent =
-            t('userNotFound');
-
-          return;
-
-        }
+  let recipient = null;
 
 
-        await userRefFor(
-          uname
-        ).update({
+  if (firebaseReady) {
 
+    recipient =
+      await findFirebaseUser(
+        username
+      );
+  }
+
+
+  /*
+    Firebase bo'lmasa,
+    lokal foydalanuvchini ham qidiramiz.
+  */
+
+  if (
+    !recipient &&
+    state.user &&
+    normalizeUsername(
+      state.user.username
+    ) === username
+  ) {
+
+    recipient = {
+      id: state.user.id,
+      ...state.user
+    };
+  }
+
+
+  if (!recipient) {
+
+    error.textContent =
+      t("userNotFound");
+
+    return;
+  }
+
+
+  if (
+    normalizeUsername(
+      state.user.username
+    ) === username
+  ) {
+
+    error.textContent =
+      state.language === "uz"
+        ? "O‘zingizga yubora olmaysiz."
+        : state.language === "ru"
+          ? "Нельзя отправить себе."
+          : "You cannot send crystals to yourself.";
+
+    return;
+  }
+
+
+  state.crystals -= amount;
+
+
+  /*
+    Agar Firebase bo'lsa,
+    qabul qiluvchining Crystal balansini
+    oshiramiz.
+  */
+
+  if (
+    firebaseReady &&
+    db &&
+    recipient.id
+  ) {
+
+    try {
+
+      await db
+        .collection("users")
+        .doc(recipient.id)
+        .set(
+          {
+            crystals:
+              firebase.firestore.FieldValue
+                .increment(amount)
+          },
+          {
+            merge: true
+          }
+        );
+
+    } catch (error) {
+
+      console.error(
+        "Gift error:",
+        error
+      );
+
+      state.crystals += amount;
+
+      error.textContent =
+        "Transfer error.";
+
+      return;
+    }
+  }
+
+
+  saveLocalAccount();
+
+  await saveFirebaseUser();
+
+  updateMainUI();
+
+
+  const receipt =
+    $("gift-receipt-wrap");
+
+  if (receipt) {
+
+    receipt.innerHTML = `
+
+      <div class="receipt">
+
+        <div class="receipt-row">
+          <span>User</span>
+          <b>@${escapeHTML(username)}</b>
+        </div>
+
+        <div class="receipt-row">
+          <span>Crystal</span>
+          <b>💎 ${formatNumber(amount)}</b>
+        </div>
+
+        <div class="receipt-row">
+          <span>Status</span>
+          <b style="color:var(--green)">
+            ✓
+          </b>
+        </div>
+
+      </div>
+
+    `;
+  }
+
+
+  showToast(
+    t("sent")
+  );
+}
+
+
+/* =========================================================
+   ADMIN TASKS
+   ========================================================= */
+
+async function adminAddTask() {
+
+  if (!state.isAdmin) return;
+
+
+  const title =
+    $("ad-task-title").value.trim();
+
+  const channel =
+    normalizeUsername(
+      $("ad-task-channel").value
+    );
+
+  const reward =
+    Number(
+      $("ad-task-reward").value
+    );
+
+  const type =
+    $("ad-task-type").value;
+
+
+  if (!title) {
+
+    showToast(
+      "Task title required."
+    );
+
+    return;
+  }
+
+
+  if (!channel) {
+
+    showToast(
+      "Channel required."
+    );
+
+    return;
+  }
+
+
+  if (
+    !Number.isFinite(reward) ||
+    reward <= 0
+  ) {
+
+    showToast(
+      "Invalid reward."
+    );
+
+    return;
+  }
+
+
+  const task = {
+
+    title,
+
+    channel,
+
+    reward,
+
+    type,
+
+    active: true,
+
+    createdAt: Date.now()
+  };
+
+
+  if (
+    firebaseReady &&
+    db
+  ) {
+
+    try {
+
+      const ref =
+        await db
+          .collection("tasks")
+          .add(task);
+
+      task.id =
+        ref.id;
+
+    } catch (error) {
+
+      console.error(
+        "Add task:",
+        error
+      );
+
+      showToast(
+        "Firebase error."
+      );
+
+      return;
+    }
+  } else {
+
+    task.id =
+      randomId();
+  }
+
+
+  state.tasks.push(task);
+
+
+  $("ad-task-title").value = "";
+  $("ad-task-channel").value = "";
+  $("ad-task-reward").value = "";
+
+
+  renderTasks();
+
+  renderAdminTasks();
+
+  showToast(
+    t("added")
+  );
+}
+
+
+function renderAdminTasks() {
+
+  const container =
+    $("ad-task-list");
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+
+  if (!state.tasks.length) {
+
+    container.innerHTML = `
+      <div class="small-note">
+        No tasks.
+      </div>
+    `;
+
+    return;
+  }
+
+
+  state.tasks.forEach(task => {
+
+    const row =
+      document.createElement("div");
+
+    row.style.cssText = `
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 0;
+      border-bottom:1px solid var(--border);
+    `;
+
+
+    row.innerHTML = `
+
+      <div style="min-width:0;">
+
+        <div
+          style="
+            font-size:13px;
+            font-weight:700;
+          "
+        >
+          ${escapeHTML(
+            task.title || "Task"
+          )}
+        </div>
+
+        <div
+          style="
+            color:var(--cyan);
+            font-size:11px;
+            margin-top:3px;
+          "
+        >
+          💎 ${formatNumber(
+            task.reward || 0
+          )}
+        </div>
+
+      </div>
+
+      <button
+        type="button"
+        data-delete-task="${escapeHTML(task.id)}"
+        style="
+          flex-shrink:0;
+          color:var(--red);
+          background:transparent;
+          font-weight:700;
+          font-size:11px;
+          cursor:pointer;
+        "
+      >
+        Delete
+      </button>
+
+    `;
+
+
+    container.appendChild(row);
+  });
+}
+
+
+async function deleteTask(id) {
+
+  if (!state.isAdmin) return;
+
+
+  if (
+    firebaseReady &&
+    db
+  ) {
+
+    try {
+
+      await db
+        .collection("tasks")
+        .doc(id)
+        .set(
+          {
+            active: false
+          },
+          {
+            merge: true
+          }
+        );
+
+    } catch (error) {
+
+      console.error(
+        "Delete task:",
+        error
+      );
+
+      return;
+    }
+  }
+
+
+  state.tasks =
+    state.tasks.filter(
+      task =>
+        task.id !== id
+    );
+
+
+  renderTasks();
+
+  renderAdminTasks();
+
+  showToast(
+    t("deleted")
+  );
+}
+
+
+/* =========================================================
+   ADMIN GIVE CURRENCY
+   ========================================================= */
+
+async function adminGiveCurrency() {
+
+  if (!state.isAdmin) return;
+
+
+  const username =
+    normalizeUsername(
+      $("ad-give-username").value
+    );
+
+  const coins =
+    Number(
+      $("ad-give-coins").value || 0
+    );
+
+  const crystals =
+    Number(
+      $("ad-give-crystals").value || 0
+    );
+
+
+  const error =
+    $("ad-give-err");
+
+  error.textContent = "";
+
+
+  if (!username) {
+
+    error.textContent =
+      t("invalidUsername");
+
+    return;
+  }
+
+
+  if (
+    coins < 0 ||
+    crystals < 0
+  ) {
+
+    error.textContent =
+      "Invalid amount.";
+
+    return;
+  }
+
+
+  if (
+    coins === 0 &&
+    crystals === 0
+  ) {
+
+    error.textContent =
+      "Enter amount.";
+
+    return;
+  }
+
+
+  if (!firebaseReady || !db) {
+
+    error.textContent =
+      "Firebase required.";
+
+    return;
+  }
+
+
+  const user =
+    await findFirebaseUser(
+      username
+    );
+
+
+  if (!user) {
+
+    error.textContent =
+      t("userNotFound");
+
+    return;
+  }
+
+
+  try {
+
+    await db
+      .collection("users")
+      .doc(user.id)
+      .set(
+        {
           coins:
-            firebase.firestore
-              .FieldValue
+            firebase.firestore.FieldValue
               .increment(coins),
 
           crystals:
-            firebase.firestore
-              .FieldValue
+            firebase.firestore.FieldValue
               .increment(crystals)
-
-        });
-
-
-        $('ad-give-username').value='';
-        $('ad-give-coins').value='';
-        $('ad-give-crystals').value='';
-
-
-        toast(
-          t('toastSaved')
-        );
-
-
-      }catch(err){
-
-        console.error(err);
-
-        errEl.textContent =
-          'Error: ' + err.message;
-
-      }
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   24. ADMIN USER LOOKUP
-   ========================================================= */
-
-const lookupBtn =
-  $('ad-lookup-btn');
-
-if(lookupBtn){
-
-  lookupBtn.addEventListener(
-    'click',
-    async ()=>{
-
-      const uname =
-        $('ad-lookup-username')
-          .value
-          .trim()
-          .toLowerCase();
-
-
-      if(!uname) return;
-
-
-      const result =
-        $('ad-lookup-result');
-
-
-      try{
-
-        const snap =
-          await userRefFor(
-            uname
-          ).get();
-
-
-        if(!snap.exists){
-
-          result.innerHTML = `
-            <div class="small-note">
-              ${t('userNotFound')}
-            </div>
-          `;
-
-          return;
-
+        },
+        {
+          merge: true
         }
+      );
 
 
-        const d =
-          snap.data();
+    $("ad-give-username").value = "";
+    $("ad-give-coins").value = "";
+    $("ad-give-crystals").value = "";
 
 
-        result.innerHTML = `
+    showToast(
+      t("sent")
+    );
 
-          <div class="receipt">
+  } catch (err) {
 
-            <div class="receipt-row">
-              <span>Name</span>
-              <b>${d.name || '-'}</b>
-            </div>
+    console.error(
+      err
+    );
 
-            <div class="receipt-row">
-              <span>Username</span>
-              <b>@${d.username || uname}</b>
-            </div>
-
-            <div class="receipt-row">
-              <span>Telegram ID</span>
-              <b>${d.telegramId || '-'}</b>
-            </div>
-
-            <div class="receipt-row">
-              <span>Coins</span>
-              <b>${fmt(d.coins)}</b>
-            </div>
-
-            <div class="receipt-row">
-              <span>Crystals</span>
-              <b>${fmt(d.crystals)}</b>
-            </div>
-
-            <div class="receipt-row">
-              <span>Referrals</span>
-              <b>${d.refCount || 0}</b>
-            </div>
-
-            <div class="receipt-row">
-              <span>Devices</span>
-              <b>${(d.devices || []).length}</b>
-            </div>
-
-          </div>
-
-        `;
-
-
-      }catch(err){
-
-        console.error(err);
-
-        result.innerHTML =
-          `<div class="small-note">
-            Error: ${err.message}
-          </div>`;
-
-      }
-
-    }
-  );
-
+    error.textContent =
+      "Firebase error.";
+  }
 }
 
 
 /* =========================================================
-   25. BOT NOTIFICATION
+   ADMIN LOOKUP
    ========================================================= */
 
-async function notifyBotRegistration(newUser){
+async function adminLookupUser() {
 
-  if(!BOT_SERVER_URL){
+  if (!state.isAdmin) return;
+
+
+  const username =
+    normalizeUsername(
+      $("ad-lookup-username").value
+    );
+
+
+  const result =
+    $("ad-lookup-result");
+
+
+  if (!username) {
+
+    result.innerHTML = `
+      <div class="err">
+        ${t("invalidUsername")}
+      </div>
+    `;
+
     return;
   }
 
 
-  try{
-
-    await fetch(
-      BOT_SERVER_URL +
-      '/notify-registration',
-      {
-
-        method:'POST',
-
-        headers:{
-          'Content-Type':
-            'application/json'
-        },
-
-        body:
-          JSON.stringify({
-
-            name:newUser.name,
-
-            username:
-              newUser.username,
-
-            telegramId:
-              telegramId,
-
-            tgName:
-              getTelegramName()
-
-          })
-
-      }
+  const user =
+    await findFirebaseUser(
+      username
     );
 
-  }catch(err){
 
-    console.error(
-      'notify error',
-      err
-    );
+  if (!user) {
 
+    result.innerHTML = `
+      <div class="err">
+        ${t("userNotFound")}
+      </div>
+    `;
+
+    return;
   }
 
+
+  result.innerHTML = `
+
+    <div class="receipt">
+
+      <div class="receipt-row">
+        <span>Name</span>
+        <b>
+          ${escapeHTML(
+            user.name || "—"
+          )}
+        </b>
+      </div>
+
+      <div class="receipt-row">
+        <span>Username</span>
+        <b>
+          @${escapeHTML(
+            user.username || "—"
+          )}
+        </b>
+      </div>
+
+      <div class="receipt-row">
+        <span>Coins</span>
+        <b>
+          🪙 ${formatNumber(
+            user.coins || 0
+          )}
+        </b>
+      </div>
+
+      <div class="receipt-row">
+        <span>Crystal</span>
+        <b>
+          💎 ${formatNumber(
+            user.crystals || 0
+          )}
+        </b>
+      </div>
+
+    </div>
+
+  `;
 }
+
+
+/* =========================================================
+   MODALS
+   ========================================================= */
+
+function openModal(id) {
+
+  const modal =
+    $(id);
+
+  if (!modal) return;
+
+  modal.classList.add(
+    "active"
+  );
+}
+
+
+function closeModal(id) {
+
+  const modal =
+    $(id);
+
+  if (!modal) return;
+
+  modal.classList.remove(
+    "active"
+  );
+}
+
+
+/* =========================================================
+   LOGOUT
+   ========================================================= */
+
+function logout() {
+
+  clearInterval(
+    state.energyTimer
+  );
+
+
+  localStorage.removeItem(
+    STORAGE_KEY
+  );
+
+
+  state.user = null;
+
+  state.coins = 0;
+
+  state.crystals = 0;
+
+  state.energy = MAX_ENERGY;
+
+  state.taps = 0;
+
+  state.referralCount = 0;
+
+  state.completedTasks = [];
+
+  state.devices = [];
+
+  state.isAdmin = false;
+
+
+  updateMainUI();
+
+  showScreen("auth");
+
+  setAuthTab("login");
+}
+
+
+/* =========================================================
+   TELEGRAM USER AUTO LOGIN
+   ========================================================= */
+
+async function tryTelegramUser() {
+
+  if (
+    !tg ||
+    !tg.initDataUnsafe ||
+    !tg.initDataUnsafe.user
+  ) {
+    return false;
+  }
+
+
+  const telegramUser =
+    tg.initDataUnsafe.user;
+
+
+  /*
+    Telegram username mavjud bo‘lsa,
+    mavjud Firebase userni topishga uriniladi.
+  */
+
+  if (
+    firebaseReady &&
+    telegramUser.username
+  ) {
+
+    const existing =
+      await findFirebaseUser(
+        telegramUser.username
+      );
+
+
+    if (existing) {
+
+      state.user = {
+
+        ...existing,
+
+        firebaseId:
+          existing.id
+      };
+
+
+      state.coins =
+        Number(existing.coins || 0);
+
+      state.crystals =
+        Number(
+          existing.crystals || 0
+        );
+
+      state.energy =
+        Number(
+          existing.energy ??
+          MAX_ENERGY
+        );
+
+      state.maxEnergy =
+        Number(
+          existing.maxEnergy ||
+          MAX_ENERGY
+        );
+
+      state.taps =
+        Number(
+          existing.taps || 0
+        );
+
+      state.referralCount =
+        Number(
+          existing.referralCount || 0
+        );
+
+      state.completedTasks =
+        Array.isArray(
+          existing.completedTasks
+        )
+          ? existing.completedTasks
+          : [];
+
+      state.devices =
+        Array.isArray(
+          existing.devices
+        )
+          ? existing.devices
+          : [];
+
+
+      state.isAdmin =
+        isAdminUser();
+
+
+      saveLocalAccount();
+
+      return true;
+    }
+  }
+
+
+  return false;
+}
+
+
+/* =========================================================
+   EVENT
