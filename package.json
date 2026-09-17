@@ -1,14 +1,13 @@
 {
-  "name": "galaxy-coin-bot",
+  "name": "galaxy-coin",
   "version": "1.0.0",
-  "description": "Telegram bot server for Galaxy Coin Mini App",
+  "description": "Galaxy Coin Telegram Mini App",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "cors": "^2.8.5",
-    "node-telegram-bot-api": "^0.66.0"
+    "dotenv": "^16.4.5",
+    "telegraf": "^4.16.3"
   }
 }
